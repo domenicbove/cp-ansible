@@ -25,6 +25,43 @@
     system: yes
     group: "{{schema_registry.group}}"
 
+# need to get the principal name, below is just for scram
+# could use set fact as to not repeat this code
+- name: Create ACLS (SCRAM)
+  shell: |
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --producer --consumer --topic _schemas --group schema-registry
+
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --producer --consumer --topic _schemas_acl --group schema-registry
+
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --operation DescribeConfigs --topic _schemas
+
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --operation DescribeConfigs --topic _schemas_acl
+
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --operation Describe --topic __consumer_offsets
+
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      --allow-principal User:{{ sasl_scram_users.schema_registry.principal }} --allow-host '*' \
+      --operation Create --cluster kafka-cluster
+  delegate_to: "{{ groups['zookeeper'][0] }}"
+  run_once: true
+  # should have a when
+  # when: "'SCRAM-SHA-256' in kafka_broker_sasl_enabled_mechanisms"
+
+      # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+      #   --allow-principal User:admin --allow-host '*' \
+      #   --producer --consumer --topic  _confluent-metrics
+
+
 - name: Create Keytabs Directory
   file:
     path: "{{kerberos.keytab_dir}}"

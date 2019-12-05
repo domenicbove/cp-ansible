@@ -40,6 +40,8 @@
 
 - set_fact:
     schema_registry_principal: "{{ schema_registry_kerberos_principal }}"
+    # schema_registry_principal: schemaregistry
+    # TODO kerberos isnt working rn
   when:
     - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
     - acls_enabled|bool

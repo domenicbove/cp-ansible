@@ -48,29 +48,31 @@
 
 - name: Create ACLS (SCRAM)
   shell: |
+    # kafka-cluster
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --producer --consumer --topic {{ schema_registry['properties']['kafkastore.topic'] }} --group schema-registry
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --operation Describe --topic __consumer_offsets
+
+    # __consumer_offsets
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --operation Create --cluster kafka-cluster
 
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --operation DescribeConfigs --topic {{ schema_registry['properties']['kafkastore.topic'] }}
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --producer --consumer --topic {{ schema_registry['properties']['kafkastore.topic'] }} --group schema-registry
 
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --producer --consumer --topic _schemas_acl --group schema-registry
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --operation DescribeConfigs --topic {{ schema_registry['properties']['kafkastore.topic'] }}
 
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --operation DescribeConfigs --topic _schemas_acl
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --producer --consumer --topic _schemas_acl --group schema-registry
 
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --operation Describe --topic __consumer_offsets
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      --operation Create --cluster kafka-cluster
+        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
+        --operation DescribeConfigs --topic _schemas_acl
   delegate_to: "{{ groups['zookeeper'][0] }}"
   run_once: true
   when: acls_enabled|bool

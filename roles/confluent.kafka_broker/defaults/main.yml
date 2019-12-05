@@ -84,6 +84,3 @@ kafka_broker:
     confluent.metrics.reporter.topic.replicas: 3
     confluent.support.metrics.enable: "{{confluent.support.metrics_enabled|bool|lower}}"
     confluent.support.customer.id: "{{confluent.support.customer_id}}"
-    authorizer.class.name: kafka.security.auth.SimpleAclAuthorizer
-    allow.everyone.if.no.acl.found: "true"
-    super.users: User:admin

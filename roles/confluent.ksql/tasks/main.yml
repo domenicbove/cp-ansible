@@ -25,6 +25,10 @@
     system: yes
     group: "{{ksql.group}}"
 
+- name: Set Acls
+  include_tasks: set_acls.yml
+  when: acls_enabled|bool
+
 - name: Create Keytabs Directory
   file:
     path: "{{kerberos.keytab_dir}}"

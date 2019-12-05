@@ -26,55 +26,8 @@
     system: yes
     group: "{{schema_registry.group}}"
 
-- set_fact:
-    schema_registry_principal: "{{ sasl_scram_users.schema_registry.principal }}"
-  when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
-    - acls_enabled|bool
-
-- set_fact:
-    schema_registry_principal: "{{ sasl_plain_users.schema_registry.principal }}"
-  when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
-    - acls_enabled|bool
-
-- set_fact:
-    schema_registry_principal: "{{ schema_registry_kerberos_principal }}"
-    # schema_registry_principal: schemaregistry
-    # TODO kerberos isnt working rn
-  when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
-    - acls_enabled|bool
-
-- name: Create ACLS (SCRAM)
-  shell: |
-    # kafka-cluster
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --operation Describe --topic __consumer_offsets
-
-    # __consumer_offsets
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --operation Create --cluster kafka-cluster
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --producer --consumer --topic {{ schema_registry['properties']['kafkastore.topic'] }} --group schema-registry
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --operation DescribeConfigs --topic {{ schema_registry['properties']['kafkastore.topic'] }}
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --producer --consumer --topic _schemas_acl --group schema-registry
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-        --operation DescribeConfigs --topic _schemas_acl
-  delegate_to: "{{ groups['zookeeper'][0] }}"
-  run_once: true
+- name: Set Acls
+  include_tasks: set_acls.yml
   when: acls_enabled|bool
 
 - name: Create Keytabs Directory

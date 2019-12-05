@@ -25,70 +25,8 @@
     system: yes
     group: "{{kafka_connect.group}}"
 
-- set_fact:
-    kafka_connect_principal: "{{ sasl_scram_users.kafka_connect.principal }}"
-  when:
-    - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
-    - acls_enabled|bool
-
-- set_fact:
-    kafka_connect_principal: "{{ sasl_plain_users.kafka_connect.principal }}"
-  when:
-    - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
-    - acls_enabled|bool
-
-- set_fact:
-    kafka_connect_principal: "{{ kafka_connect_kerberos_principal }}"
-    # TODO kerberos isnt working rn
-  when:
-    - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
-    - acls_enabled|bool
-
-- name: Create ACLS (SCRAM)
-  shell: |
-    # kafka-cluster
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --cluster kafka-cluster --operation Create
-
-    # __consumer_offsets
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --operation Describe --topic __consumer_offsets
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --operation Read --group {{ kafka_connect['properties']['group.id'] }}
-
-    # config.storage.topic
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --producer --topic {{ kafka_connect['properties']['config.storage.topic'] }}
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --operation Read --topic {{ kafka_connect['properties']['config.storage.topic'] }}
-
-    # offset.storage.topic
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --producer --topic {{ kafka_connect['properties']['offset.storage.topic'] }}
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --operation Read --topic {{ kafka_connect['properties']['offset.storage.topic'] }}
-
-    # status.storage.topic
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --producer --topic {{ kafka_connect['properties']['status.storage.topic'] }}
-
-    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-        --allow-principal User:{{ kafka_connect_principal }} --allow-host '*' \
-        --operation Read --topic {{ kafka_connect['properties']['status.storage.topic'] }}
-
-  delegate_to: "{{ groups['zookeeper'][0] }}"
-  run_once: true
+- name: Set Acls
+  include_tasks: set_acls.yml
   when: acls_enabled|bool
 
 - name: Create Keytabs Directory

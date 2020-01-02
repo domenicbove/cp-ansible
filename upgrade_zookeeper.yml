@@ -70,7 +70,7 @@
       delegate_to: localhost
       when:
         - '"follower" in leader_query.stdout'
-        - zookeeper_current_version != confluent_package_version
+        # - zookeeper_current_version != confluent_package_version
 
     - name: Add host to Leader Group
       add_host:
@@ -79,7 +79,7 @@
       delegate_to: localhost
       when:
         - '"leader" in leader_query.stdout'
-        - zookeeper_current_version != confluent_package_version
+        # - zookeeper_current_version != confluent_package_version
 
     - debug:
         msg: "Leader: {{inventory_hostname}}"

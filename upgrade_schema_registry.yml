@@ -43,7 +43,7 @@
           - "{{ schema_registry.systemd_override }}"
         restore_files:
           - "{{ schema_registry.config_file }}"
-      when: schema_registry_current_version != confluent_package_version
+      # when: schema_registry_current_version != confluent_package_version
 
     - name: Wait for API to return 200 - HTTP
       uri:

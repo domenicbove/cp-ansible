@@ -27,17 +27,30 @@
   vars:
     install_java: false
 
-- name: Install the Packages - Red Hat
+- name: Remove old Packages - Red Hat
+  yum:
+    name: "{{item}}"
+    state: removed
+  loop: "{{ packages }}"
+  when: ansible_os_family == "RedHat"
+
+- name: Install new Packages - Red Hat
   yum:
     name: "{{item}}{{confluent_package_redhat_suffix}}"
     state: latest
   loop: "{{ packages }}"
   when: ansible_os_family == "RedHat"
 
-- name: Install the Packages - Debian
+- name: Remove old Packages - Debian
+  apt:
+    name: "{{item}}"
+    state: absent
+  loop: "{{ packages }}"
+  when: ansible_os_family == "Debian"
+
+- name: Install new Packages - Debian
   apt:
     name: "{{item}}{{confluent_package_debian_suffix}}"
-    update_cache: yes
   loop: "{{ packages }}"
   when: ansible_os_family == "Debian"
 

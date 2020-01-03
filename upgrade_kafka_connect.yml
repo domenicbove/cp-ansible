@@ -54,13 +54,13 @@
       delay: 5
       when: not kafka_connect_ssl_enabled|bool
 
-    - name: Wait for API to return 200 - HTTPS
-      uri:
-        url: "https://localhost:8083/connectors"
-        status_code: 200
-        validate_certs: no
-      register: result
-      until: result.status == 200
-      retries: 60
-      delay: 5
-      when: kafka_connect_ssl_enabled|bool
+    # - name: Wait for API to return 200 - HTTPS
+    #  uri:
+    #    url: "https://localhost:8083/connectors"
+    #    status_code: 200
+    #    validate_certs: no
+    #  register: result
+    #  until: result.status == 200
+    #  retries: 60
+    #  delay: 5
+    #  when: kafka_connect_ssl_enabled|bool

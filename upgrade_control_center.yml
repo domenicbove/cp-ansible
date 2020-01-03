@@ -52,12 +52,12 @@
       delay: 5
       when: not ssl_enabled|bool
 
-    - name: Wait for webpage to serve HTTPS content
-      uri:
-        url: "https://localhost:{{control_center_listenter_port}}"
-        validate_certs: no
-      register: result
-      until: result.status == 200
-      retries: 60
-      delay: 5
-      when: ssl_enabled|bool
+    #- name: Wait for webpage to serve HTTPS content
+    #  uri:
+    #    url: "https://localhost:{{control_center_listenter_port}}"
+    #    validate_certs: no
+    #  register: result
+    #  until: result.status == 200
+    #  retries: 60
+    #  delay: 5
+    #  when: ssl_enabled|bool

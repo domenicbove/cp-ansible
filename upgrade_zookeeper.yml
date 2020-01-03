@@ -112,8 +112,6 @@
       loop:
         - "{{ zookeeper.config_file }}"
         - "{{ zookeeper.systemd_override }}"
-        - "{{ kafka_broker.config_file }}"
-        - "{{ kafka_broker.systemd_override }}"
 
     - name: Stop Service
       systemd:
@@ -176,7 +174,6 @@
         src: "/tmp/upgrade/{{ zookeeper_service_name }}/{{ item | basename }}-{{timestamp}}"
       loop:
         - "{{ zookeeper.config_file }}"
-        - "{{ kafka_broker.config_file }}"
 
     - name: Search for existing snapshot files
       find:

@@ -1,0 +1,44 @@
+---
+- set_fact:
+    ksql_principal: "{{ sasl_scram_users.ksql.principal }}"
+  when:
+    - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
+
+- set_fact:
+    ksql_principal: "{{ sasl_plain_users.ksql.principal }}"
+  when:
+    - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
+
+- set_fact:
+    ksql_principal: "{{ ksql_kerberos_principal }}"
+    # ksql_principal: schemaregistry
+    # TODO kerberos isnt working rn
+  when:
+    - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
+
+- name: Create ACLS (SCRAM)
+  shell: |
+    # Allow KSQL to discover the cluster:
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation DescribeConfigs --cluster
+
+    # Internal KSQL topics
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic _confluent-ksql-{{ ksql['properties']['ksql.service.id'] }} \
+        --group _confluent-ksql-{{ ksql['properties']['ksql.service.id'] }} \
+        --resource-pattern-type prefixed
+
+    # KSQL processing log topic
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic {{ ksql['properties']['ksql.service.id'] }}ksql_processing_log
+
+    # Convenience - access to ksql output topic prefix
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic ksql_topic_ \
+        --resource-pattern-type prefixed
+  delegate_to: "{{ groups['zookeeper'][0] }}"
+  run_once: true

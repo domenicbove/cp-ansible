@@ -15,7 +15,7 @@
   when:
     - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
 
-- name: Create ACLS (SCRAM)
+- name: Create ACLS
   shell: |
     # kafka-cluster
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \

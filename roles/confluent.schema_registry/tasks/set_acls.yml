@@ -1,20 +1,24 @@
 ---
 - set_fact:
     schema_registry_principal: "{{ sasl_scram_users.schema_registry.principal }}"
-  when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
+  when: kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
 
 - set_fact:
     schema_registry_principal: "{{ sasl_plain_users.schema_registry.principal }}"
-  when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
+  when: kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
 
 - set_fact:
     schema_registry_principal: "{{ schema_registry_kerberos_principal }}"
     # schema_registry_principal: schemaregistry
     # TODO kerberos isnt working rn
+  when: kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
+
+- set_fact:
+    schema_registry_principal: "{{ common_name }}"
   when:
-    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
+    - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
 
 - name: Create ACLS
   shell: |

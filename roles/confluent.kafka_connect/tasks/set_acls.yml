@@ -1,29 +1,44 @@
 ---
-- set_fact:
+- name: Set Principal - Sasl Scram
+  set_fact:
     kafka_connect_principal: "{{ sasl_scram_users.kafka_connect.principal }}"
   when: kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
 
-- set_fact:
+- name: Set Principal - Sasl Plain
+  set_fact:
     kafka_connect_principal: "{{ sasl_plain_users.kafka_connect.principal }}"
   when: kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
 
-- set_fact:
+- name: Set Principal - Sasl Kerberos
+  set_fact:
     kafka_connect_principal: "{{ kafka_connect_kerberos_principal }}"
     # TODO kerberos isnt working rn
   when: kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
 
-- set_fact:
-    kafka_connect_principal: "{{ common_name }}"
-    #keytool -list -v -keystore /var/ssl/private/kafka_broker.keystore.jks -storepass confluentkeystorestorepass | grep Owner -m1| sed -n "s/^.*CN=\(\S*\),.*$/\1/p"
-    # m1 being the first line only
-    # sed will search string (Owner: CN=kafka_broker, OU=TEST, O=CONFLUENT, L=PaloAlto, ST=Ca, C=US)
-    # and capture between CN= and ,
+- name: Extract Common Name from Keystore
+  shell: |
+    # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+    openssl pkcs12 -nokeys -in {{kafka_connect_keystore_path}} \
+        -passin pass:{{kafka_connect_keystore_storepass}} \
+        | openssl x509 -noout -subject \
+        | sed -n "s/^.*CN=\(\S*\).*$/\1/p" \
+        | cut -d '/' -f1
+  register: common_name_from_keystore
   when:
     - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] == 'none'
     - ssl_enabled|bool
     - ssl_mutual_auth_enabled|bool
 
-- debug: var=kafka_connect_principal
+- name: Set Principal - SSL Mutual Auth
+  set_fact:
+    kafka_connect_principal: "{{ common_name_from_keystore.stdout }}"
+  when:
+    - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
+
+- debug:
+    msg: "Principal: {{kafka_connect_principal}}"
 
 - name: Create ACLS
   shell: |

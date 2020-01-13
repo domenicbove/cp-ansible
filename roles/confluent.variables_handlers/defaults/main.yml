@@ -31,6 +31,8 @@ fips_jar_path: /usr/share/java/kafka/bc-fips-1.0.1.jar
 fips_provider_class: org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
 pkcs12_enabled: "{{ true if fips_enabled|bool else false }}"
 
+acls_enabled: false
+
 custom_log4j: true
 custom_yum_repofile: false
 custom_apt_repo: false
@@ -164,6 +166,9 @@ zookeeper:
   jaas_file: /etc/kafka/zookeeper_jaas.conf
 
 sasl_scram_users:
+  kafka_broker:
+    principal: kafka_broker
+    password: kafka_broker-secret
   admin:
     principal: admin
     password: admin-secret
@@ -187,6 +192,9 @@ sasl_scram_users:
     password: schema_registry-secret
 
 sasl_plain_users:
+  kafka_broker:
+    principal: kafka_broker
+    password: kafka_broker-secret
   admin:
     principal: admin
     password: admin-secret

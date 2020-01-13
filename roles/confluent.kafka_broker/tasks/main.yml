@@ -159,3 +159,7 @@
     name: "{{kafka_broker_service_name}}"
     enabled: yes
     state: started
+
+- name: Set Acls
+  include_tasks: set_acls.yml
+  when: acls_enabled|bool

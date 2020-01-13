@@ -19,16 +19,31 @@
 - name: Extract Common Name from Keystore
   # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
   shell: |
-    openssl pkcs12 -nokeys -in {{schema_registry_keystore_path}} \
-        -passin pass:{{schema_registry_keystore_storepass}} \
-        | openssl x509 -noout -subject \
-        | sed -n "s/^.*CN=\(\S*\).*$/\1/p" \
-        | cut -d '/' -f1
+    keytool -list -keystore {{schema_registry_keystore_path}} \
+        -storepass {{schema_registry_keystore_storepass}} -v \
+        | grep Owner -m1 \
+        | cut -d ":" -f2 \
+        | tr -d '[:space:]'
   register: common_name_from_keystore
   when:
     - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] == 'none'
     - ssl_enabled|bool
     - ssl_mutual_auth_enabled|bool
+
+
+# - name: Extract Common Name from Keystore
+#   # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+#   shell: |
+#     openssl pkcs12 -nokeys -in {{schema_registry_keystore_path}} \
+#         -passin pass:{{schema_registry_keystore_storepass}} \
+#         | openssl x509 -noout -subject \
+#         | sed -n "s/^.*CN=\(\S*\).*$/\1/p" \
+#         | cut -d '/' -f1
+#   register: common_name_from_keystore
+#   when:
+#     - kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] == 'none'
+#     - ssl_enabled|bool
+#     - ssl_mutual_auth_enabled|bool
 
 - name: Set Principal - SSL Mutual Auth
   set_fact:

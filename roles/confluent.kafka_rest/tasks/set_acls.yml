@@ -1,0 +1,78 @@
+---
+- name: Set Principal - Sasl Scram
+  set_fact:
+    kafka_rest_principal: "{{ sasl_scram_users.kafka_rest.principal }}"
+  when: kafka_broker_listeners[kafka_rest_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
+
+- name: Set Principal - Sasl Plain
+  set_fact:
+    kafka_rest_principal: "{{ sasl_plain_users.kafka_rest.principal }}"
+  when: kafka_broker_listeners[kafka_rest_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
+
+- name: Set Principal - Sasl Kerberos
+  set_fact:
+    kafka_rest_principal: "{{ kafka_rest_kerberos_principal }}"
+    # TODO kerberos isnt working rn
+  when: kafka_broker_listeners[kafka_rest_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
+
+# - name: Extract Common Name from Keystore
+#   shell: |
+#     # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+#     openssl pkcs12 -nokeys -in {{kafka_connect_keystore_path}} \
+#         -passin pass:{{kafka_connect_keystore_storepass}} \
+#         | openssl x509 -noout -subject \
+#         | sed -n "s/^.*CN=\(\S*\).*$/\1/p" \
+#         | cut -d '/' -f1
+#   register: common_name_from_keystore
+#   when:
+#     - kafka_broker_listeners[kafka_connect_kafka_listener_name]['sasl_protocol'] == 'none'
+#     - ssl_enabled|bool
+#     - ssl_mutual_auth_enabled|bool
+
+- name: Extract Common Name from Keystore
+  # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+  shell: |
+    keytool -list -keystore {{kafka_rest_keystore_path}} \
+        -storepass {{kafka_rest_keystore_storepass}} -v \
+        | grep Owner -m1 \
+        | cut -d ":" -f2 \
+        | tr -d '[:space:]'
+  register: common_name_from_keystore
+  when:
+    - kafka_broker_listeners[kafka_rest_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
+
+- name: Set Principal - SSL Mutual Auth
+  set_fact:
+    kafka_rest_principal: "{{ common_name_from_keystore.stdout }}"
+  when:
+    - kafka_broker_listeners[kafka_rest_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
+
+#
+# - name: Set Principal - SSL Mutual Auth
+#   set_fact:
+#     kafka_connect_principal: "CN=kafka_connect,OU=TEST,O=CONFLUENT,L=PaloAlto,S=Ca,C=US"
+
+- debug:
+    msg: "Principal: {{kafka_rest_principal}}"
+
+- name: Create ACLS
+  shell: |
+    # kafka-cluster
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ kafka_rest_principal }} --allow-host '*' \
+        --cluster kafka-cluster --operation Create
+
+    # __consumer_offsets
+    # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+    #     --allow-principal User:{{ kafka_rest_principal }} --allow-host '*' \
+    #     --operation Describe --topic __consumer_offsets
+    #
+    # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+    #     --allow-principal User:{{ kafka_rest_principal }} --allow-host '*' \
+    #     --operation Read --group {{ kafka_connect['properties']['group.id'] }}
+  delegate_to: "{{ groups['zookeeper'][0] }}"
+  run_once: true

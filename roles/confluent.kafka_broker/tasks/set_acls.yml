@@ -73,7 +73,7 @@
     # _confluent-metrics
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
         --allow-principal User:{{ kafka_broker_principal }} --allow-host '*' \
-        --producer --topic _confluent-license
+        --producer --topic _confluent-metrics
 
     kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
         --allow-principal User:{{ kafka_broker_principal }} --allow-host '*' \

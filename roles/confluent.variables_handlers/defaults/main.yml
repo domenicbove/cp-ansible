@@ -68,6 +68,14 @@ kafka_broker_default_listeners:
     ssl_mutual_auth_enabled: "{{ ssl_mutual_auth_enabled }}"
     sasl_protocol: "{{ sasl_protocol }}"
 
+kafka_broker_token_listeners:
+  token:
+    name: TOKEN
+    port: 9094
+    ssl_enabled: true
+    ssl_mutual_auth_enabled: true
+    sasl_protocol: oauth
+
 kafka_broker_custom_listeners:
   internal:
     name: INTERNAL
@@ -77,7 +85,12 @@ kafka_broker_custom_listeners:
     sasl_protocol: "{{ sasl_protocol }}"
 
 kafka_broker_configure_additional_brokers: true
-kafka_broker_listeners: "{{ kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if kafka_broker_configure_additional_brokers|bool else  kafka_broker_default_listeners}}"
+kafka_broker_listeners: >-
+  {{ kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) | combine(kafka_broker_custom_listeners, recursive=True) if rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) if rbac_enabled|bool and not kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if not rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else  kafka_broker_default_listeners }}
+
 kafka_broker_inter_broker_listener_name: "{{ 'internal' if kafka_broker_configure_additional_brokers|bool else 'external' }}"
 
 # Uses custom filter to create a list of all sasl_protocols, removes ['none'], and reduces to unique items

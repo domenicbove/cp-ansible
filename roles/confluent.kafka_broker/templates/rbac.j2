@@ -1,0 +1,39 @@
+############################# Authorization Settings #############################
+authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
+confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
+confluent.authorizer.group.provider=CONFLUENT
+super.users=User:kafka;User:rbac3-admin;User:rbac3-ksql;User:rbac3-c3;User:rbac3-connect;User:rbac3-rest;User:rbac3-sr;User:rbac3-client;User:rbac3-demo1;User:mds;User:admin;User:control_center;User:kafka_connect;User:schema_registry;User:client;User:ksql
+
+confluent.metadata.server.listeners=http://0.0.0.0:8090
+# TODO: test how it works without advertised listeners
+confluent.metadata.server.advertised.listeners=http://ec2-52-13-29-227.us-west-2.compute.amazonaws.com:8090
+
+############################# MDS Token Service Settings - enable token generation #############################
+confluent.metadata.server.token.auth.enable=true
+confluent.metadata.server.token.max.lifetime.ms=3600000
+confluent.metadata.server.token.key.path=/opt/etc/mds_keypair.pem
+confluent.metadata.server.public.key.path=/opt/etc/mds_public.pem
+confluent.metadata.server.token.signature.algorithm=RS256
+confluent.metadata.server.authentication.method=BEARER
+
+############################# Identity Provider Settings(LDAP - local OpenLDAP) #############################
+ldap.java.naming.factory.initial=com.sun.jndi.ldap.LdapCtxFactory
+ldap.com.sun.jndi.ldap.read.timeout=3000
+ldap.java.naming.provider.url=ldap://ec2-34-220-216-219.us-west-2.compute.amazonaws.com:389
+# how mds authenticates to ldap server
+ldap.java.naming.security.principal=CN=mds,CN=Users,DC=qe,DC=confluent,DC=io
+ldap.java.naming.security.credentials=Confluent1!
+ldap.java.naming.security.authentication=simple
+# ldap search mode (GROUPS is default)
+#ldap.search.mode=GROUPS
+#ldap.search.mode=USERS
+# how to search for users
+ldap.user.search.base=CN=Users,DC=qe,DC=confluent,DC=io
+# how to search for groups
+ldap.group.search.base=CN=Users,DC=qe,DC=confluent,DC=io
+# which attribute in ldap record corresponds to user name
+ldap.user.name.attribute=sAMAccountName
+ldap.user.memberof.attribute.pattern=CN=(.*),CN=Users,DC=qe,DC=confluent,DC=io
+ldap.group.object.class=group
+ldap.group.name.attribute=sAMAccountName
+ldap.group.member.attribute.pattern=CN=(.*),CN=Users,DC=qe,DC=confluent,DC=io

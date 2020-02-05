@@ -1,8 +1,8 @@
 kerberos:
   keytab_dir: /etc/security/keytabs
 
-confluent_repo_version: 5.3
-confluent_package_version: 5.3.2
+confluent_repo_version: 5.4
+confluent_package_version: 5.4.0
 confluent_full_package_version: "{{ confluent_package_version + '-1' }}"
 confluent_package_redhat_suffix: "{{ '-' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
 confluent_package_debian_suffix: "{{ '=' + confluent_full_package_version if confluent_full_package_version != '' else ''}}"
@@ -40,8 +40,14 @@ kerberos_configure: true
 
 open_file_limit: 500000
 
-rbac_enabled: false
 confluent_server_enabled: true
+
+rbac_enabled: false
+rbac_mds_private_key_filename: tokenKeypair.pem
+rbac_mds_public_key_filename: public.pem
+
+install_netcat: true
+health_checks_enabled: true
 
 # Other options: kerberos, plain, scram
 sasl_protocol: none
@@ -67,6 +73,14 @@ kafka_broker_default_listeners:
     ssl_mutual_auth_enabled: "{{ ssl_mutual_auth_enabled }}"
     sasl_protocol: "{{ sasl_protocol }}"
 
+kafka_broker_token_listeners:
+  token:
+    name: TOKEN
+    port: 9094
+    ssl_enabled: true
+    ssl_mutual_auth_enabled: true
+    sasl_protocol: oauth
+
 kafka_broker_custom_listeners:
   internal:
     name: INTERNAL
@@ -76,7 +90,12 @@ kafka_broker_custom_listeners:
     sasl_protocol: "{{ sasl_protocol }}"
 
 kafka_broker_configure_additional_brokers: true
-kafka_broker_listeners: "{{ kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if kafka_broker_configure_additional_brokers|bool else  kafka_broker_default_listeners}}"
+kafka_broker_listeners: >-
+  {{ kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) | combine(kafka_broker_custom_listeners, recursive=True) if rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) if rbac_enabled|bool and not kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if not rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else  kafka_broker_default_listeners }}
+
 kafka_broker_inter_broker_listener_name: "{{ 'internal' if kafka_broker_configure_additional_brokers|bool else 'external' }}"
 
 # Uses custom filter to create a list of all sasl_protocols, removes ['none'], and reduces to unique items

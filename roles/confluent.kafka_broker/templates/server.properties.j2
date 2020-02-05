@@ -95,3 +95,7 @@ confluent.metrics.reporter.sasl.mechanism=SCRAM-SHA-256
 confluent.metrics.reporter.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required \
    username="{{sasl_scram_users.admin.principal}}" password="{{sasl_scram_users.admin.password}}";
 {% endif %}
+
+{% if mds_server|bool %}
+{% include 'mds.j2' %}
+{% endif %}

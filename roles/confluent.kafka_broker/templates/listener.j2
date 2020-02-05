@@ -43,7 +43,7 @@ listener.name.{{listener.value.name|lower}}.scram-sha-256.sasl.jaas.config=org.a
 listener.name.{{listener.value.name|lower}}.sasl.enabled.mechanisms=OAUTHBEARER
 listener.name.{{listener.value.name|lower}}.oauthbearer.sasl.jaas.config= \
   org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required \
-  publicKeyPath="/opt/etc/mds_public.pem";
+  publicKeyPath="/var/ssl/private/{{rbac_mds_public_key_filename}}";
 listener.name.{{listener.value.name|lower}}.oauthbearer.sasl.server.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerValidatorCallbackHandler
 listener.name.{{listener.value.name|lower}}.oauthbearer.sasl.login.callback.handler.class=io.confluent.kafka.server.plugins.auth.token.TokenBearerServerLoginCallbackHandler
 {% endif %}

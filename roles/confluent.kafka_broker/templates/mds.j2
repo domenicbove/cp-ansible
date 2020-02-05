@@ -1,18 +1,20 @@
 ############################# Authorization Settings #############################
 authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
-confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
+confluent.authorizer.access.rule.providers=CONFLUENT
+#confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
 confluent.authorizer.group.provider=CONFLUENT
-super.users=User:kafka;User:rbac3-admin;User:rbac3-ksql;User:rbac3-c3;User:rbac3-connect;User:rbac3-rest;User:rbac3-sr;User:rbac3-client;User:rbac3-demo1;User:mds;User:admin;User:control_center;User:kafka_connect;User:schema_registry;User:client;User:ksql
+super.users=User:CN=node1.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US;User:CN=node2.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US;User:CN=node3.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US
+#super.users=User:kafka;User:rbac3-admin;User:rbac3-ksql;User:rbac3-c3;User:rbac3-connect;User:rbac3-rest;User:rbac3-sr;User:rbac3-client;User:rbac3-demo1;User:mds;User:admin;User:control_center;User:kafka_connect;User:schema_registry;User:client;User:ksql
 
 confluent.metadata.server.listeners=http://0.0.0.0:8090
 # TODO: test how it works without advertised listeners
-confluent.metadata.server.advertised.listeners=http://ec2-52-13-29-227.us-west-2.compute.amazonaws.com:8090
+#confluent.metadata.server.advertised.listeners=http://ec2-52-13-29-227.us-west-2.compute.amazonaws.com:8090
 
 ############################# MDS Token Service Settings - enable token generation #############################
 confluent.metadata.server.token.auth.enable=true
 confluent.metadata.server.token.max.lifetime.ms=3600000
-confluent.metadata.server.token.key.path=/opt/etc/mds_keypair.pem
-confluent.metadata.server.public.key.path=/opt/etc/mds_public.pem
+confluent.metadata.server.token.key.path=/var/ssl/private/{{rbac_mds_private_key_filename}}
+confluent.metadata.server.public.key.path=/var/ssl/private/{{rbac_mds_public_key_filename}}
 confluent.metadata.server.token.signature.algorithm=RS256
 confluent.metadata.server.authentication.method=BEARER
 
@@ -37,3 +39,7 @@ ldap.user.memberof.attribute.pattern=CN=(.*),CN=Users,DC=qe,DC=confluent,DC=io
 ldap.group.object.class=group
 ldap.group.name.attribute=sAMAccountName
 ldap.group.member.attribute.pattern=CN=(.*),CN=Users,DC=qe,DC=confluent,DC=io
+
+
+
+confluent.security.event.logger.enabled=false

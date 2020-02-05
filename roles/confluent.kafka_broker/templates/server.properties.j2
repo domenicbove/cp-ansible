@@ -90,6 +90,6 @@ confluent.metrics.reporter.sasl.jaas.config=org.apache.kafka.common.security.scr
    username="{{sasl_scram_users.admin.principal}}" password="{{sasl_scram_users.admin.password}}";
 {% endif %}
 
-{% if rbac_enabled|bool %}
-{% include 'rbac.j2' %}
+{% if mds_server|bool %}
+{% include 'mds.j2' %}
 {% endif %}

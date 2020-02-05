@@ -158,13 +158,18 @@ kafka_broker:
       ## By default the first host will get broker id=1, second gets id=2. Set broker_id to customize
       # broker_id: 3
 
+      ## (optionally) Rack aware replication assignment for fault tolerance. Examples: `RACK1`, `us-east-1d`
+      # broker_rack: us-east-1d
+
       ## For kerberos sasl protocol, EACH host will need these two variables:
       # kafka_broker_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ip-172-31-34-246.us-east-2.compute.internal>
       # kafka_broker_kerberos_principal: <The principal configured in kdc server, eg. kafka/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
     ip-172-31-37-15.us-east-2.compute.internal:
       # broker_id: 2
+      # broker_rack: us-east-1a
     ip-172-31-34-231.us-east-2.compute.internal:
       # broker_id: 1
+      # broker_rack: us-east-1b
 schema_registry:
   hosts:
     ip-172-31-34-246.us-east-2.compute.internal:
@@ -172,11 +177,15 @@ schema_registry:
       # schema_registry_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/schemaregistry-ip-172-31-34-246.us-east-2.compute.internal
       # schema_registry_kerberos_principal: The principal configured in kdc server ex: schemaregistry/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 kafka_connect:
-  hosts:
-    ip-172-31-34-246.us-east-2.compute.internal:
-      ## For kerberos sasl protocol, EACH host will need these two variables:
-      # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
-      # kafka_connect_kerberos_principal: The principal configured in kdc server ex: connect/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
+  children:
+    vars:
+      kafka_connect_group_id: connect-cluster
+      # Each group of hosts can be added to separate connect distributed clusters. A cluster can include 1 to many hosts.
+    hosts:
+      ip-172-31-34-246.us-east-2.compute.internal:
+        ## For kerberos sasl protocol, EACH host will need these two variables:
+        # kafka_connect_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/connect-ip-172-31-34-246.us-east-2.compute.internal
+        # kafka_connect_kerberos_principal: The principal configured in kdc server ex: connect/ip-172-31-34-246.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 kafka_rest:
   hosts:
     ip-172-31-34-246.us-east-2.compute.internal:
@@ -190,6 +199,13 @@ ksql:
       # ksql_kerberos_keytab_path: <The path on ansible host to keytab file, eg. /tmp/keytabs/ksql-ip-172-31-37-15.us-east-2.compute.internal
       # ksql_kerberos_principal: The principal configured in kdc server ex: ksql/ip-172-31-37-15.us-east-2.compute.internal@REALM.EXAMPLE.COM>
 control_center:
+  vars:
+    kafka_connect_cluster_ansible_group_names:
+      - cluster
+      # Add more cluster names here to match the kafka_connect distributed clusters above
+      # - syslog1
+      # - syslog2
+      # - sink
   hosts:
     ip-172-31-37-15.us-east-2.compute.internal:
       ## For kerberos sasl protocol, EACH host will need these two variables:

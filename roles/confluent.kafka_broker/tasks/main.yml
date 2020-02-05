@@ -36,6 +36,22 @@
     common_name: kafka_broker
   when: kafka_broker_listeners | ssl_required(ssl_enabled)
 
+- name: Set Principal
+  include_tasks: set_principal.yml
+  when:
+    - rbac_enabled|bool
+    - mds_server|bool
+
+# TODO customers might want to add to this list, so should put in defaults
+- name: Initialize Super Users List
+  set_fact:
+    super_users: []
+
+- name: Generate Super Users list
+  set_fact:
+    super_users: "{{ ec2_security_group_names }} + [ '{{ item.group_name }}' ]"
+  loop: "{{ groups['kafka_broker'] }}"
+
 - name: Create Keytabs Directory
   file:
     path: "{{kerberos.keytab_dir}}"
@@ -166,8 +182,3 @@
   when:
     - health_checks_enabled|bool
     - jolokia_enabled|bool
-
-- name: Set Acls
-  include_tasks: set_acls.yml
-  when: acls_enabled|bool
-

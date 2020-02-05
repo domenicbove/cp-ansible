@@ -47,10 +47,17 @@
   set_fact:
     super_users: []
 
-- name: Generate Super Users list
+- name: Generate Super Users List
   set_fact:
-    super_users: "{{ ec2_security_group_names }} + [ '{{ item.group_name }}' ]"
+    super_users: "{{ super_users }} + [ '{{hostvars[item]['kafka_broker_principal']}}' ]"
   loop: "{{ groups['kafka_broker'] }}"
+
+- name: Remove Duplicates in Super Users List
+  set_fact:
+    super_users: "{{ super_users | unique }}"
+
+- debug:
+    var: super_users
 
 - name: Create Keytabs Directory
   file:

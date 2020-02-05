@@ -3,8 +3,7 @@ authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuth
 confluent.authorizer.access.rule.providers=CONFLUENT
 #confluent.authorizer.access.rule.providers=ZK_ACL,CONFLUENT
 confluent.authorizer.group.provider=CONFLUENT
-super.users=User:CN=node1.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US;User:CN=node2.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US;User:CN=node3.example.com,OU=TEST,O=CONFLUENT,L=PaloAlto,ST=Ca,C=US
-#super.users=User:kafka;User:rbac3-admin;User:rbac3-ksql;User:rbac3-c3;User:rbac3-connect;User:rbac3-rest;User:rbac3-sr;User:rbac3-client;User:rbac3-demo1;User:mds;User:admin;User:control_center;User:kafka_connect;User:schema_registry;User:client;User:ksql
+super.users={% for user in super_users %}{% if loop.index > 1%};{% endif %}{{ user }}{% endfor %}
 
 confluent.metadata.server.listeners=http://0.0.0.0:8090
 # TODO: test how it works without advertised listeners

@@ -15,12 +15,17 @@
   - name: Create Certificate Authority and Copy to Ansible Host
     include_tasks: tasks/certificate_authority.yml
     run_once: true
-    when: self_signed|bool and regenerate_ca|bool
+    when:
+      - self_signed|bool
+      - regenerate_ca|bool
+      - ssl_enabled|bool
 
   - name: Create RBAC Certs
     include_tasks: tasks/rbac_mds_certs.yml
     run_once: true
-    when: self_signed|bool and rbac_enabled|bool
+    when:
+      - self_signed|bool
+      - rbac_enabled|bool
 
 - name: Zookeeper Provisioning
   hosts: zookeeper

@@ -25,7 +25,7 @@
     system: yes
     group: "{{kafka_broker.group}}"
 
-- import_role:
+- include_role:
     name: confluent.ssl
   vars:
     truststore_storepass: "{{kafka_broker_truststore_storepass}}"
@@ -34,30 +34,33 @@
     keystore_storepass: "{{kafka_broker_keystore_storepass}}"
     keystore_keypass: "{{kafka_broker_keystore_keypass}}"
     common_name: kafka_broker
-  when: kafka_broker_listeners | ssl_required(ssl_enabled)
+  when: kafka_broker_listeners | ssl_required(ssl_enabled) | bool
+
 
 - name: Set Principal
   include_tasks: set_principal.yml
-  when:
-    - rbac_enabled|bool
-    - mds_server|bool
+  when: rbac_enabled|bool
 
 # TODO customers might want to add to this list, so should put in defaults
 - name: Initialize Super Users List
   set_fact:
     super_users: []
+  when: rbac_enabled|bool
 
 - name: Generate Super Users List
   set_fact:
-    super_users: "{{ super_users }} + [ '{{hostvars[item]['kafka_broker_principal']}}' ]"
+    super_users: "{{ super_users }} + [ '{{ hostvars[item]['kafka_broker_principal'] }}' ]"
   loop: "{{ groups['kafka_broker'] }}"
+  when: rbac_enabled|bool
 
 - name: Remove Duplicates in Super Users List
   set_fact:
     super_users: "{{ super_users | unique }}"
+  when: rbac_enabled|bool
 
 - debug:
     var: super_users
+  when: rbac_enabled|bool
 
 - name: Create Keytabs Directory
   file:
@@ -87,6 +90,8 @@
     mode: 0755
   with_items: "{{kafka_broker.datadir}}"
 
+- debug: var=kafka_broker_listeners
+
 - name: Create Kafka Broker Config
   template:
     src: server.properties.j2
@@ -96,6 +101,8 @@
     group: "{{kafka_broker.group}}"
   notify:
     - Restart Kafka
+
+# - fail: msg=whatev
 
 - name: Create Logs Directory
   file:
@@ -189,3 +196,13 @@
   when:
     - health_checks_enabled|bool
     - jolokia_enabled|bool
+
+- name: Download Jolokia Jar
+  get_url:
+    url: https://cnfl.io/cli
+    dest: /usr/local/bin/confluent
+    mode: 0755
+  when: rbac_enabled|bool
+
+# - name: Download Confluent CLI
+#   shell: curl -L https://cnfl.io/cli | sh -s -- -b /usr/bin/local

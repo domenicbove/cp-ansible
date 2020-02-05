@@ -32,7 +32,12 @@
     keystore_path: "{{control_center_keystore_path}}"
     keystore_storepass: "{{control_center_keystore_storepass}}"
     keystore_keypass: "{{control_center_keystore_keypass}}"
+    common_name: control_center
   when: control_center_ssl_enabled|bool or kafka_broker_listeners[control_center_kafka_listener_name]['ssl_enabled'] | default(ssl_enabled) | bool
+
+- name: Set Acls
+  include_tasks: set_acls.yml
+  when: acls_enabled|bool
 
 - name: Create Keytabs Directory
   file:

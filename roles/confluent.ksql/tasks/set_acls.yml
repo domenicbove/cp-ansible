@@ -1,0 +1,83 @@
+---
+- name: Set Principal - Sasl Scram
+  set_fact:
+    ksql_principal: "{{ sasl_scram_users.ksql.principal }}"
+  when: kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'SCRAM-SHA-256'
+
+- name: Set Principal - Sasl Plain
+  set_fact:
+    ksql_principal: "{{ sasl_plain_users.ksql.principal }}"
+  when: kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'PLAIN'
+
+- name: Set Principal - Sasl Kerberos
+  set_fact:
+    ksql_principal: "{{ ksql_kerberos_principal }}"
+    # ksql_principal: schemaregistry
+    # TODO kerberos isnt working rn
+  when: kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] | normalize_sasl_protocol == 'GSSAPI'
+
+# - name: Extract Common Name from Keystore
+#   # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+#   shell: |
+#     openssl pkcs12 -nokeys -in {{ksql_keystore_path}} \
+#         -passin pass:{{ksql_keystore_storepass}} \
+#         | openssl x509 -noout -subject \
+#         | sed -n "s/^.*CN=\(\S*\).*$/\1/p" \
+#         | cut -d '/' -f1
+#   register: common_name_from_keystore
+#   when:
+#     - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] == 'none'
+#     - ssl_enabled|bool
+#     - ssl_mutual_auth_enabled|bool
+
+- name: Extract Common Name from Keystore
+  # Extract certs from keystore, get the subject line, pull out the CN, remove additional line after /
+  shell: |
+    keytool -list -keystore {{ksql_keystore_path}} \
+        -storepass {{ksql_keystore_storepass}} -v \
+        | grep Owner -m1 \
+        | cut -d ":" -f2 \
+        | tr -d '[:space:]'
+  register: common_name_from_keystore
+  when:
+    - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
+
+- name: Set Principal - SSL Mutual Auth
+  set_fact:
+    ksql_principal: "{{ common_name_from_keystore.stdout }}"
+  when:
+    - kafka_broker_listeners[ksql_kafka_listener_name]['sasl_protocol'] == 'none'
+    - ssl_enabled|bool
+    - ssl_mutual_auth_enabled|bool
+
+- debug:
+    msg: "Principal: {{ksql_principal}}"
+
+- name: Create ACLS
+  shell: |
+    # Allow KSQL to discover the cluster:
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation DescribeConfigs --cluster
+
+    # Internal KSQL topics
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic _confluent-ksql-{{ ksql['properties']['ksql.service.id'] }} \
+        --group _confluent-ksql-{{ ksql['properties']['ksql.service.id'] }} \
+        --resource-pattern-type prefixed
+
+    # KSQL processing log topic
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic {{ ksql['properties']['ksql.service.id'] }}ksql_processing_log
+
+    # Convenience - access to ksql output topic prefix
+    kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+        --allow-principal User:{{ ksql_principal }} --allow-host '*' \
+        --operation All --topic ksql_topic_ \
+        --resource-pattern-type prefixed
+  delegate_to: "{{ groups['zookeeper'][0] }}"
+  run_once: true

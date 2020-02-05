@@ -43,3 +43,4 @@
   file:
     path: /var/ssl/private/generation
     state: absent
+  when: delete_generation_dir|bool

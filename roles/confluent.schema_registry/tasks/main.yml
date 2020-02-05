@@ -1,3 +1,4 @@
+---
 # Install Packages
 - name: Install the Schema Registry Packages
   yum:
@@ -32,7 +33,12 @@
     keystore_path: "{{schema_registry_keystore_path}}"
     keystore_storepass: "{{schema_registry_keystore_storepass}}"
     keystore_keypass: "{{schema_registry_keystore_keypass}}"
+    common_name: schema_registry
   when: schema_registry_ssl_enabled|bool or kafka_broker_listeners[schema_registry_kafka_listener_name]['ssl_enabled'] | default(ssl_enabled) | bool
+
+- name: Set Acls
+  include_tasks: set_acls.yml
+  when: acls_enabled|bool
 
 - name: Create Keytabs Directory
   file:

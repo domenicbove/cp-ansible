@@ -12,6 +12,13 @@
       - self_signed|bool
       - regenerate_ca|bool
       - ssl_enabled|bool
+      
+  - name: Create RBAC Certs
+    include_tasks: tasks/rbac_mds_certs.yml
+    run_once: true
+    when:
+      - self_signed|bool
+      - rbac_enabled|bool
 
 - name: Host Prerequisites
   hosts: zookeeper:kafka_broker:schema_registry:kafka_connect:ksql:control_center:kafka_rest

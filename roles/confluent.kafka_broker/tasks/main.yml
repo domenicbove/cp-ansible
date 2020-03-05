@@ -1,39 +1,39 @@
 ---
-- include_role:
-    name: confluent.common
-  when: not common_role_completed|bool
-
-# Install Packages
-- name: Install the Kafka Broker Packages
-  yum:
-    name: "{{item}}{{confluent_package_redhat_suffix}}"
-    state: latest
-  loop: "{{kafka_broker_packages}}"
-  when: ansible_os_family == "RedHat"
-
-- name: Install the Kafka Broker Packages
-  apt:
-    name: "{{item}}{{confluent_package_debian_suffix}}"
-  loop: "{{kafka_broker_packages}}"
-  when: ansible_os_family == "Debian"
-
-- name: Install EPEL to gain access to additional tools
-  yum:
-     name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-     state: present
-  when: ansible_os_family == "RedHat" and rbac_enabled|bool 
-
-- name: Install JQ to parse json on cmd line
-  yum:
-     name: jq
-     state: latest
-  when: ansible_os_family == "RedHat" and rbac_enabled|bool 
-
-- name: Install JQ to parse json on cmd line
-  apt:
-     name: jq
-     state: latest
-  when: ansible_os_family == "Debian" and rbac_enabled|bool 
+# - include_role:
+#     name: confluent.common
+#   when: not common_role_completed|bool
+#
+# # Install Packages
+# - name: Install the Kafka Broker Packages
+#   yum:
+#     name: "{{item}}{{confluent_package_redhat_suffix}}"
+#     state: latest
+#   loop: "{{kafka_broker_packages}}"
+#   when: ansible_os_family == "RedHat"
+#
+# - name: Install the Kafka Broker Packages
+#   apt:
+#     name: "{{item}}{{confluent_package_debian_suffix}}"
+#   loop: "{{kafka_broker_packages}}"
+#   when: ansible_os_family == "Debian"
+#
+# - name: Install EPEL to gain access to additional tools
+#   yum:
+#      name: https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
+#      state: present
+#   when: ansible_os_family == "RedHat" and rbac_enabled|bool
+#
+# - name: Install JQ to parse json on cmd line
+#   yum:
+#      name: jq
+#      state: latest
+#   when: ansible_os_family == "RedHat" and rbac_enabled|bool
+#
+# - name: Install JQ to parse json on cmd line
+#   apt:
+#      name: jq
+#      state: latest
+#   when: ansible_os_family == "Debian" and rbac_enabled|bool
 
 # Configure Environment
 - name: Kafka Broker group
@@ -58,19 +58,19 @@
     service_name: kafka_broker
     hostnames: "{{ kafka_broker_listeners | get_hostnames(inventory_hostname) | unique }}"
   when: kafka_broker_listeners | ssl_required(ssl_enabled)
-  
-- name: Create pem file Directory
-  file:
-    path: "{{rbac_enabled_public_pem_path}}"
-    group: "{{kafka_broker.group}}"
-    mode: '650'
-    recurse: yes
-  when: rbac_enabled|bool 
+
+# - name: Create pem file Directory
+#   file:
+#     path: "{{rbac_enabled_public_pem_path}}"
+#     group: "{{kafka_broker.group}}"
+#     mode: '650'
+#     recurse: yes
+#   when: rbac_enabled|bool
 
 - name: Copy in public pem files
   copy:
     src: "{{rbac_public_pem_file}}"
-    dest: "{{rbac_enabled_public_pem_path}}"
+    dest: /var/ssl/private/public.pem
     mode: '755'
     owner: "{{kafka_broker.user}}"
     group: "{{kafka_broker.group}}"
@@ -79,12 +79,12 @@
 - name: Copy in private pem files
   copy:
     src: "{{rbac_private_pem_file}}"
-    dest: "{{rbac_enabled_private_pem_path}}"
+    dest: /var/ssl/private/tokenKeypair.pem
     mode: '755'
     owner: "{{kafka_broker.user}}"
     group: "{{kafka_broker.group}}"
   when: rbac_enabled|bool
-  
+
 - name: Configure Kerberos
   include_role:
     name: confluent.kerberos

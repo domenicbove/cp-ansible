@@ -63,10 +63,6 @@
     group: "{{schema_registry.group}}"
   when: rbac_enabled|bool or acls_enabled|bool
 
-- name: Get Kafka Cluster ID
-  include_tasks: tasks/get_cluster_id.yml
-  when: rbac_enabled|bool or acls_enabled|bool
-
 # TODO deeper investigation into what the principals are!
 - set_fact:
     schema_registry_principal: schema_registry

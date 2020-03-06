@@ -45,3 +45,29 @@ ksql:
     ksql.streams.num.standby.replicas: 1
     ksql.streams.producer.delivery.timeout.ms: 2147483647
     ksql.streams.producer.max.block.ms: 9223372036854775807
+
+ksql_acls:
+  - resource_name: __consumer_offsets
+    resource_type: topic
+    operations:
+      - DESCRIBE
+  - resource_name: schema-registry
+    resource_type: consumer-group
+    operations:
+      - READ
+  - resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ
+      - DESCRIBE
+      - DESCRIBE-CONFIGS
+  - resource_name: _schemas_acl
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ
+      - DESCRIBE
+      - DESCRIBE-CONFIGS

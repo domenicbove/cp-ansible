@@ -63,26 +63,21 @@
     group: "{{kafka_connect.group}}"
   when: rbac_enabled|bool or acls_enabled|bool
 
+- name: export certificate to pem format for MDS login to create user
+  delegate_to: "{{ groups['kafka_broker'][0] }}"
+  shell: |
+    openssl pkcs12 -in /var/ssl/private/kafka_broker.keystore.jks \
+      -out /var/ssl/private/kafka_broker.keystore.pem \
+      -passin pass:{{kafka_broker_keystore_storepass}} -passout pass:{{kafka_broker_keystore_storepass}}
+  when: rbac_enabled|bool and ssl_enabled|bool
+
 - name: Get Kafka Cluster ID
   include_tasks: tasks/get_cluster_id.yml
   when: rbac_enabled|bool or acls_enabled|bool
 
 # TODO deeper investigation into what the principals are!
 - set_fact:
-    kafka_connect_principal: kafka_connect
-
-- fail:
-
-- name: Create Centralized ACLS
-  include_tasks: tasks/acls.yml
-  vars:
-    principal: "{{kafka_connect_principal}}"
-    acls_list: "{{kafka_connect_acls}}"
-  when: acls_enabled|bool
-
-- fail:
-
-
+    schema_registry_principal: kafka_connect
 
 - name: Login to MDS to get Security Token
   delegate_to: "{{ groups['kafka_broker'][0] }}"

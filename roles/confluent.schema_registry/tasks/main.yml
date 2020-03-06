@@ -51,29 +51,9 @@
     kerberos_handler: "restart schema-registry"
   when: kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'GSSAPI'
 
-# RBAC Configuration
-- name: Get Kafka Cluster ID
-  include_tasks: tasks/get_cluster_id.yml
-  when: rbac_enabled|bool or acls_enabled|bool
+# RBAC/ACLs Configuration
 
-# TODO deeper investigation into what the principals are!
-- set_fact:
-    schema_registry_principal: schema_registry
-
-- name: Log into MDS through CLI
-  include_tasks: tasks/mds_cli_login.yml
-  when: acls_enabled|bool
-
-- name: Create MDS ACLs
-  shell: |
-    /usr/local/bin/confluent iam acl create \
-      --kafka-cluster-id {{cluster_id}} \
-      --allow --principal User:{{ schema_registry_principal }} \
-      --operation {{item.operation}} \
-      --{{item.resource_type}} {{item.resource_name}}
-  loop: "{{ schema_registry_acls }}"
-  when: acls_enabled|bool
-
+# TODO move into the ssl role, this is duplicating code
 - name: Copy in public pem files
   copy:
     src: "{{rbac_public_pem_file}}"
@@ -82,6 +62,18 @@
     owner: "{{schema_registry.user}}"
     group: "{{schema_registry.group}}"
   when: rbac_enabled|bool or acls_enabled|bool
+
+- name: Get Kafka Cluster ID
+  include_tasks: tasks/get_cluster_id.yml
+  when: rbac_enabled|bool or acls_enabled|bool
+
+# TODO deeper investigation into what the principals are!
+- set_fact:
+    schema_registry_principal: schema_registry
+
+- name: Create Centralized ACLS
+  include_tasks: acls.yml
+  when: acls_enabled|bool
 
 - name: Create RoleBindings for RBAC
   include_tasks: rolebindings.yml

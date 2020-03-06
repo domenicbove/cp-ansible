@@ -24,3 +24,41 @@ schema_registry:
   properties:
     debug: false
     kafkastore.topic: _schemas
+
+schema_registry_acls:
+  - operation: DESCRIBE
+    resource_type: topic
+    resource_name: __consumer_offsets
+  - operation: WRITE
+    resource_type: topic
+    resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+  - operation: CREATE
+    resource_type: topic
+    resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+  - operation: READ
+    resource_type: topic
+    resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+  - operation: DESCRIBE
+    resource_type: topic
+    resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+  - operation: DESCRIBE-CONFIGS
+    resource_type: topic
+    resource_name: "{{ schema_registry['properties']['kafkastore.topic'] }}"
+  - operation: WRITE
+    resource_type: topic
+    resource_name: _schemas_acl
+  - operation: CREATE
+    resource_type: topic
+    resource_name: _schemas_acl
+  - operation: READ
+    resource_type: topic
+    resource_name: _schemas_acl
+  - operation: DESCRIBE
+    resource_type: topic
+    resource_name: _schemas_acl
+  - operation: DESCRIBE-CONFIGS
+    resource_type: topic
+    resource_name: _schemas_acl
+  - operation: READ
+    resource_type: consumer-group
+    resource_name: schema-registry

@@ -51,214 +51,104 @@
     kerberos_handler: "restart schema-registry"
   when: kafka_broker_listeners[schema_registry_kafka_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'GSSAPI'
 
-## RBAC Configuration
-- name: Get Kafka Cluster ID and Log into MDS
-  include_tasks: tasks/get_cluster_id_and_mds_token.yml
-  when: rbac_enabled|bool
+# RBAC Configuration
+- name: Get Kafka Cluster ID
+  include_tasks: tasks/get_cluster_id.yml
+  when: rbac_enabled|bool or acls_enabled|bool
 
 # TODO deeper investigation into what the principals are!
 - set_fact:
     schema_registry_principal: schema_registry
 
-- fail: msg=whatev
+- name: Log into MDS through CLI
+  include_tasks: tasks/mds_cli_login.yml
+  when: acls_enabled|bool
 
-# - name: Grant Security Admin Role to Schema Registry user
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/SecurityAdmin"
-#     method: POST
-#     headers:
-#       accept: application/json
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       {"clusters":{"kafka-cluster":"{{cluster_id}}","schema-registry-cluster":"schema-registry"}}
-#     status_code: 204
+- name: Create MDS ACLs
+  shell: |
+    /usr/local/bin/confluent iam acl create \
+      --kafka-cluster-id {{cluster_id}} \
+      --allow --principal User:{{ schema_registry_principal }} \
+      --operation {{item.operation}} \
+      --{{item.resource_type}} {{item.resource_name}}
+  loop: "{{ schema_registry_acls }}"
+  when: acls_enabled|bool
 
-    # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-    #     --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-    #     --operation Create --cluster kafka-cluster
+- name: Copy in public pem files
+  copy:
+    src: "{{rbac_public_pem_file}}"
+    dest: /var/ssl/private/public.pem
+    mode: '755'
+    owner: "{{schema_registry.user}}"
+    group: "{{schema_registry.group}}"
+  when: rbac_enabled|bool or acls_enabled|bool
 
-# confluent iam acl create -vvvv --allow --principal User:schema_registry --operation CREATE --cluster kafka-cluster  --kafka-cluster-id  sEMR8IqpQw-N36iHY3wHYA
+- name: Create RoleBindings for RBAC
+  include_tasks: rolebindings.yml
+  when: rbac_enabled|bool
 
-      # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      #     --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      #     --operation Describe --topic __consumer_offsets
+- name: Create Schema Registry Config
+  template:
+    src: schema-registry.properties.j2
+    dest: "{{schema_registry.config_file}}"
+    mode: 0640
+    owner: "{{schema_registry.user}}"
+    group: "{{schema_registry.group}}"
+  notify:
+    - restart schema-registry
 
-# confluent iam acl create -vvvv --allow --principal User:schema_registry --operation DESCRIBE --topic __consumer_offsets --kafka-cluster-id  sEMR8IqpQw-N36iHY3wHYA
+- name: Create Logs Directory
+  file:
+    path: "{{schema_registry.appender_log_path}}"
+    state: directory
+    group: "{{schema_registry.group}}"
+    owner: "{{schema_registry.user}}"
+    mode: '764'
 
+- name: Create Schema Registry log4j Config
+  template:
+    src: schema_registry_log4j.properties.j2
+    dest: "{{schema_registry.log4j_file}}"
+    mode: 0640
+    owner: "{{schema_registry.user}}"
+    group: "{{schema_registry.group}}"
+  notify:
+    - restart schema-registry
 
-# - name: SR cluster CREATE
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/acls"
-#     method: POST
-#     headers:
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       {
-#           "scope": {
-#               "clusters": {
-#                   "kafka-cluster": "{{cluster_id}}"
-#               }
-#           },
-#           "aclBinding": {
-#               "pattern": {
-#                   "resourceType": "CLUSTER",
-#                   "name": "kafka-cluster",
-#                   "patternType": "LITERAL"
-#               },
-#               "entry": {
-#                   "principal": "User:{{schema_registry_principal}}",
-#                   "operation": "CREATE"
-#               }
-#           }
-#       }
-#     status_code: 204
+- name: Create Service Override Directory
+  file:
+    path: "{{schema_registry.systemd_override | dirname}}"
+    owner: "{{schema_registry.user}}"
+    group: "{{schema_registry.group}}"
+    state: directory
+    mode: 0640
 
-# printf 'kafka_broker\npassword\n' | confluent login --url http://ip-172-31-47-140.us-west-2.compute.internal:8090
-#
-# - name: SR describe topic __consumer_offsets
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/acls:search"
-#     method: POST
-#     headers:
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       {
-#           "scope": {
-#               "clusters": {
-#                   "kafka-cluster": "{{cluster_id}}"
-#               }
-#           }
-#       }
-#     status_code: 200
+- name: Write Service Overrides
+  template:
+    src: override.conf.j2
+    dest: "{{schema_registry.systemd_override}}"
+    mode: 0640
+    owner: "{{schema_registry.user}}"
+    group: "{{schema_registry.group}}"
+  notify:
+    - reload systemd
+    - restart schema-registry
 
-# - name: SR describe topic __consumer_offsets
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/acls"
-#     method: POST
-#     headers:
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       {
-#           "scope": {
-#               "clusters": {
-#                   "kafka-cluster": "{{cluster_id}}"
-#               }
-#           },
-#           "aclBinding": {
-#               "pattern": {
-#                   "resourceType": "TOPIC",
-#                   "name": "__consumer_offsets",
-#                   "patternType": "LITERAL"
-#               },
-#               "entry": {
-#                   "principal": "User:{{schema_registry_principal}}",
-#                   "operation": "DESCRIBE"
-#               }
-#           }
-#       }
-#     status_code: 204
+- name: Certs were Updated - Trigger Restart
+  command: /bin/true
+  notify: restart schema-registry
+  when: certs_updated|bool
 
-      # kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
-      #     --allow-principal User:{{ schema_registry_principal }} --allow-host '*' \
-      #     --operation Describe --topic __consumer_offsets
+- meta: flush_handlers
 
+- name: Start Schema Registry Service
+  systemd:
+    name: "{{schema_registry_service_name}}"
+    enabled: yes
+    state: started
 
-# - name: Grant Schema Registry ResourceOwner on the group that Schema Registry nodes use to coordinate across the cluster
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/ResourceOwner/bindings"
-#     method: POST
-#     headers:
-#       accept: application/json
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       {"scope":{"clusters":{"kafka-cluster": "{{cluster_id}}"}}, "resourcePatterns":[{"resourceType":"Group","name": "schema-registry","patternType":"LITERAL"}]}
-#     status_code: 204
-#
-# - name: Grant schema registry ResourceOwner on the kafka topic where schemas are stored
-#   uri:
-#     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/ResourceOwner/bindings"
-#     method: POST
-#     headers:
-#       accept: application/json
-#       Authorization: "Bearer {{mds_token}}"
-#       Content-Type: application/json
-#     body_format: json
-#     body: >
-#       { "scope": {"clusters": {"kafka-cluster":"{{cluster_id}}"}}, "resourcePatterns": [{"resourceType": "Topic", "name": "_schemas" }]}
-#     status_code: 204
-#
-# - name: Create Schema Registry Config
-#   template:
-#     src: schema-registry.properties.j2
-#     dest: "{{schema_registry.config_file}}"
-#     mode: 0640
-#     owner: "{{schema_registry.user}}"
-#     group: "{{schema_registry.group}}"
-#   notify:
-#     - restart schema-registry
-#
-# - name: Create Logs Directory
-#   file:
-#     path: "{{schema_registry.appender_log_path}}"
-#     state: directory
-#     group: "{{schema_registry.group}}"
-#     owner: "{{schema_registry.user}}"
-#     mode: '764'
-#
-# - name: Create Schema Registry log4j Config
-#   template:
-#     src: schema_registry_log4j.properties.j2
-#     dest: "{{schema_registry.log4j_file}}"
-#     mode: 0640
-#     owner: "{{schema_registry.user}}"
-#     group: "{{schema_registry.group}}"
-#   notify:
-#     - restart schema-registry
-#
-# - name: Create Service Override Directory
-#   file:
-#     path: "{{schema_registry.systemd_override | dirname}}"
-#     owner: "{{schema_registry.user}}"
-#     group: "{{schema_registry.group}}"
-#     state: directory
-#     mode: 0640
-#
-# - name: Write Service Overrides
-#   template:
-#     src: override.conf.j2
-#     dest: "{{schema_registry.systemd_override}}"
-#     mode: 0640
-#     owner: "{{schema_registry.user}}"
-#     group: "{{schema_registry.group}}"
-#   notify:
-#     - reload systemd
-#     - restart schema-registry
-#
-# - name: Certs were Updated - Trigger Restart
-#   command: /bin/true
-#   notify: restart schema-registry
-#   when: certs_updated|bool
-#
-# - meta: flush_handlers
-#
-# - name: Start Schema Registry Service
-#   systemd:
-#     name: "{{schema_registry_service_name}}"
-#     enabled: yes
-#     state: started
-#
-# - name: Health Check
-#   include_tasks: health_check.yml
-#   when:
-#     - health_checks_enabled|bool
-#     - not ansible_check_mode
+- name: Health Check
+  include_tasks: health_check.yml
+  when:
+    - health_checks_enabled|bool
+    - not ansible_check_mode

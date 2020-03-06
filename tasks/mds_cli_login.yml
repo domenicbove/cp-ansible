@@ -1,0 +1,21 @@
+---
+- name: Install Expect package - Red Hat
+  yum:
+    name: expect
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Install Expect package - Debian
+  apt:
+    name: expect
+  when: ansible_os_family == "Debian"
+
+- name: Download Confluent CLI
+  shell: curl -L https://cnfl.io/cli | sh -s -- -b /usr/local/bin
+  args:
+    creates:  /usr/local/bin/confluent
+
+- name: Login to MDS through CLI
+  shell: |
+    expect -c 'spawn /usr/local/bin/confluent login --url http://{{ groups['kafka_broker'][0] }}:8090; expect "sername:"; send "kafka_broker\r"; expect "assword:"; send "password\r"; expect "Logged in as kafka_broker"; interact'
+  register: login_response

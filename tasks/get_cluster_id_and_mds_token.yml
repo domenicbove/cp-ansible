@@ -10,6 +10,8 @@
 - set_fact:
     cluster_id: "{{ cluster_id_json.id }}"
 
+- debug: var=cluster_id
+
 - name: Login to MDS to get Security Token
   uri:
     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/authenticate"

@@ -72,17 +72,17 @@
 - set_fact:
     control_center_principal: control_center
 
-# TODO finish this
-- name: Create Centralized ACLS
-  include_tasks: tasks/acls.yml
-  vars:
-    principal: "{{control_center_principal}}"
-    acls_list: "{{control_center_acls}}"
-  when: acls_enabled|bool
+# # TODO finish this
+# - name: Create Centralized ACLS
+#   include_tasks: tasks/acls.yml
+#   vars:
+#     principal: "{{control_center_principal}}"
+#     acls_list: "{{control_center_acls}}"
+#   when: acls_enabled|bool
 
-# - name: Create RoleBindings for RBAC
-#   include_tasks: rolebindings.yml
-#   when: rbac_enabled|bool
+- name: Create RoleBindings for RBAC
+  include_tasks: rolebindings.yml
+  when: rbac_enabled|bool
 
 # - name: Create Control Center Config
 #   template:

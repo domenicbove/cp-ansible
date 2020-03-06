@@ -14,5 +14,5 @@
       Content-Type: application/json
     body_format: json
     body: >
-      {"clusters":{"kafka-cluster":"{{cluster_id.stdout}}"}
+      {"clusters":{"kafka-cluster":"{{cluster_id}}"}}
     status_code: 204

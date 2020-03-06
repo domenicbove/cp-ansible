@@ -55,3 +55,17 @@ control_center_acls:
       - WRITE
       - CREATE
       - READ
+  # - resource_name: _confluent-controlcenter-5-4-0-1-aggregatedTopicPartitionTableWindows-ONE_MINUTE-changelog
+  #   resource_type: topic
+  #   operations:
+  #     - WRITE
+  #     - CREATE
+  #     - READ
+  # - resource_name: _confluent-controlcenter-5-4-0-1-actual-group-consumption-rekey
+  #   resource_type: topic
+  #   operations:
+  #     - WRITE
+  #     - CREATE
+  #     - READ
+
+# /usr/local/bin/confluent iam acl create --kafka-cluster-id Jan_QjWbRGepqpR7PzAaDg --allow --principal User:control_center --operation CREATE --topic _confluent-controlcenter- --prefix

@@ -56,7 +56,7 @@
   include_tasks: tasks/get_cluster_id_and_mds_token.yml
   when: rbac_enabled|bool
 
-## Configure users for RBAC with MTLS and self signed certificates
+# TODO deeper investigation into what the principals are!
 - set_fact:
     schema_registry_principal: schema_registry
 

@@ -31,3 +31,27 @@ control_center:
     confluent.controlcenter.data.dir: /var/lib/confluent/control-center
     confluent.controlcenter.ksql.enable: 'true'
     confluent.controlcenter.schema.registry.enable: 'true'
+
+# # kafka-cluster
+# kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+#     --allow-principal User:{{ control_center_principal }} --allow-host '*' \
+#     --cluster kafka-cluster --operation Create
+#
+# # _confluent-metrics
+# kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+#     --allow-principal User:{{ control_center_principal }} --allow-host '*' \
+#     --producer --topic _confluent-metrics
+#
+# kafka-acls --authorizer-properties zookeeper.connect=localhost:2181 --add \
+#     --allow-principal User:{{ control_center_principal }} --allow-host '*' \
+#     --operation Read --topic _confluent-metrics
+
+# /usr/local/bin/confluent iam acl create --kafka-cluster-id Jan_QjWbRGepqpR7PzAaDg --allow --principal User:control_center --operation CREATE --cluster-scope
+
+control_center_acls:
+  - resource_name: _confluent-metrics
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ

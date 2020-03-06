@@ -13,3 +13,6 @@
       --operation {{item.1}} \
       --{{item.0.resource_type}} {{item.0.resource_name}}
   loop: "{{ acls_list | subelements('operations')}}"
+  register: output
+
+- debug: var=output

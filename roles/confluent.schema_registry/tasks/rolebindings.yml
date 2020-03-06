@@ -1,7 +1,9 @@
 ---
+- name: Get Kafka Cluster ID
+  include_tasks: tasks/get_cluster_id.yml
+  
 - name: Log into MDS API
   include_tasks: tasks/mds_rest_login.yml
-  when: acls_enabled|bool
 
 - name: Grant Security Admin Role to Schema Registry user
   uri:

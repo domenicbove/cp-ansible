@@ -1,7 +1,7 @@
 ---
 - name: Get Kafka Cluster ID
   include_tasks: tasks/get_cluster_id.yml
-  
+
 - name: Log into MDS API
   include_tasks: tasks/mds_rest_login.yml
 
@@ -10,7 +10,6 @@
     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/SecurityAdmin"
     method: POST
     headers:
-      accept: application/json
       Authorization: "Bearer {{mds_token}}"
       Content-Type: application/json
     body_format: json
@@ -23,7 +22,6 @@
     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/ResourceOwner/bindings"
     method: POST
     headers:
-      accept: application/json
       Authorization: "Bearer {{mds_token}}"
       Content-Type: application/json
     body_format: json
@@ -36,7 +34,6 @@
     url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{schema_registry_principal}}/roles/ResourceOwner/bindings"
     method: POST
     headers:
-      accept: application/json
       Authorization: "Bearer {{mds_token}}"
       Content-Type: application/json
     body_format: json

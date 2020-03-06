@@ -1,61 +1,42 @@
 ---
-- name: Get Kafka Cluster ID from Zookeeper
-  delegate_to: "{{ groups['zookeeper'][0] }}"
-  shell: |
-    /bin/zookeeper-shell localhost:2181 get /cluster/id 2> /dev/null | grep version | jq -r .id
-  register: cluster_id
-  when: rbac_enabled|bool
+- name: Get Kafka Cluster ID
+  include_tasks: tasks/get_cluster_id.yml
 
-- name: Login to MDS to get Security Token
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -u "{{rbac_broker_admin}}":"{{rbac_broker_admin_password}}" -s http://localhost:8090/security/1.0/authenticate 2> /dev/null | grep auth_token | jq -r .auth_token
-  register: rbac_token
-  when: rbac_enabled|bool
+- name: Log into MDS API
+  include_tasks: tasks/mds_rest_login.yml
 
-## Configure users for RBAC with MTLS and self signed certificates
-
-- name: Grant SecurityAdmin role on KSQL user
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{inventory_hostname}}/roles/SecurityAdmin -H "accept: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}" -H "Content-Type: application/json" -d '{"clusters":{"kafka-cluster":"{{cluster_id.stdout}}","ksql-cluster":"default_"}}'
-  when: (rbac_enabled|bool and ssl_enabled|bool) and not (ssl_custom_certs|bool)
+- name: Grant Security Admin Role to KSQL User
+  uri:
+    url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{ksql_principal}}/roles/SecurityAdmin"
+    method: POST
+    headers:
+      Authorization: "Bearer {{mds_token}}"
+      Content-Type: application/json
+    body_format: json
+    body: >
+      {"clusters":{"kafka-cluster":"{{cluster_id}}","ksql-cluster":"{{ ksql['properties']['ksql.service.id'] }}"}}
+    status_code: 204
 
 - name: Grant Resource owner of KSQL Cluster on KSQL User
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{inventory_hostname}}/roles/ResourceOwner/bindings -d '{ "scope": {"clusters": {"kafka-cluster":"{{cluster_id.stdout}}","ksql-cluster":"default_"}},"resourcePatterns":[{"resourceType": "KsqlCluster","name": "ksql-cluster"}]}' -H "Content-Type: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}"
-  when: (rbac_enabled|bool and ssl_enabled|bool) and not (ssl_custom_certs|bool)
+  uri:
+    url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{ksql_principal}}/roles/ResourceOwner/bindings"
+    method: POST
+    headers:
+      Authorization: "Bearer {{mds_token}}"
+      Content-Type: application/json
+    body_format: json
+    body: >
+      {"scope": {"clusters": {"kafka-cluster":"{{cluster_id}}","ksql-cluster":"{{ ksql['properties']['ksql.service.id'] }}"}},"resourcePatterns":[{"resourceType": "KsqlCluster","name": "ksql-cluster"}]}
+    status_code: 204
 
 - name: Grant ksql user the ResourceOwner role with three resourcePatterns
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{inventory_hostname}}/roles/ResourceOwner/bindings -d '{ "scope": {"clusters": {"kafka-cluster":"{{cluster_id.stdout}}"}}, "resourcePatterns": [{"resourceType": "Topic", "name": "_confluent-ksql-default__command_topic","patternType":"LITERAL"},{"resourceType":"Topic","name":"default_-ksql_processing_log","patternType":"LITERAL"},{"resourceType":"Group","name":"_confluent-ksql-default_","patternType":"PREFIXED"}]}' -H "Content-Type: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}"
-  when: (rbac_enabled|bool and ssl_enabled|bool) and not (ssl_custom_certs|bool)
-
-## Configure users for RBAC with MTLS and custom certificates
-
-- name: Grant SecurityAdmin role on KSQL user
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{rbac_principal_name}}/roles/SecurityAdmin -H "accept: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}" -H "Content-Type: application/json" -d '{"clusters":{"kafka-cluster":"{{cluster_id.stdout}}","ksql-cluster":"default_"}}'
-  when: rbac_enabled|bool and ssl_enabled|bool and ssl_custom_certs|bool
-
-- name: Grant Resource owner of KSQL Cluster on KSQL User
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{rbac_principal_name}}/roles/ResourceOwner/bindings -d '{ "scope": {"clusters": {"kafka-cluster":"{{cluster_id.stdout}}","ksql-cluster":"default_"}},"resourcePatterns":[{"resourceType": "KsqlCluster","name": "ksql-cluster"}]}' -H "Content-Type: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}"
-  when: rbac_enabled|bool and ssl_enabled|bool and ssl_custom_certs|bool
-
-- name: Grant ksql user the ResourceOwner role with three resourcePatterns
-  delegate_to: "{{ groups['kafka_broker'][0] }}"
-  delegate_facts: true
-  shell: |
-    curl -X POST http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{rbac_principal_name}}/roles/ResourceOwner/bindings -d '{ "scope": {"clusters": {"kafka-cluster":"{{cluster_id.stdout}}"}}, "resourcePatterns": [{"resourceType": "Topic", "name": "_confluent-ksql-default__command_topic","patternType":"LITERAL"},{"resourceType":"Topic","name":"default_-ksql_processing_log","patternType":"LITERAL"},{"resourceType":"Group","name":"_confluent-ksql-default_","patternType":"PREFIXED"}]}' -H "Content-Type: application/json" -H "Authorization: Bearer {{rbac_token.stdout}}"
-  when: rbac_enabled|bool and ssl_enabled|bool and ssl_custom_certs|bool
+  uri:
+    url: "http://{{ groups['kafka_broker'][0] }}:8090/security/1.0/principals/User:{{ksql_principal}}/roles/ResourceOwner/bindings"
+    method: POST
+    headers:
+      Authorization: "Bearer {{mds_token}}"
+      Content-Type: application/json
+    body_format: json
+    body: >
+      {"scope": {"clusters": {"kafka-cluster":"{{cluster_id}}"}}, "resourcePatterns": [{"resourceType": "Topic", "name": "_confluent-ksql-default__command_topic","patternType":"LITERAL"},{"resourceType":"Topic","name":"default_-ksql_processing_log","patternType":"LITERAL"},{"resourceType":"Group","name":"_confluent-ksql-default_","patternType":"PREFIXED"}]}'
+    status_code: 204

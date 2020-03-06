@@ -92,9 +92,9 @@ ksql.security.extension.class=io.confluent.ksql.security.KsqlConfluentSecurityEx
 # Enable KSQL OAuth authentication
 rest.servlet.initializor.classes=io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler
 websocket.servlet.initializor.classes=io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler
-oauth.jwt.public.key.path={{rbac_public_pem_file}}
-confluent.metadata.public.key.path={{rbac_public_pem_file}}
-public.key.path={{rbac_public_pem_file}}
+oauth.jwt.public.key.path=/var/ssl/private/public.pem
+confluent.metadata.public.key.path=/var/ssl/private/public.pem
+public.key.path=/var/ssl/private/public.pem
 
 # location of metadata service
 confluent.metadata.bootstrap.server.urls={% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}http://{{ host }}:8090{% endfor %}
@@ -102,7 +102,7 @@ confluent.metadata.bootstrap.server.urls={% for host in groups['kafka_broker'] %
 # Credentials to access the Metadata service
 
 {% if rbac_enabled|bool and ssl_enabled|bool %}
-confluent.metadata.basic.auth.user.info={{ inventory_hostname }}:{{ rbac_principal_password }}
+confluent.metadata.basic.auth.user.info={{ ksql_principal }}:{{ rbac_principal_password }}
 {% endif %}
 {% if rbac_enabled|bool and ssl_enabled|bool and ssl_custom_certs|bool %}
 confluent.metadata.basic.auth.user.info={{ rbac_principal_name }}:{{ rbac_principal_password }}

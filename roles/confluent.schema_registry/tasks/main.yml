@@ -72,7 +72,10 @@
     schema_registry_principal: schema_registry
 
 - name: Create Centralized ACLS
-  include_tasks: acls.yml
+  include_tasks: tasks/acls.yml
+  vars:
+    principal: "{{schema_registry_principal}}"
+    acls_list: "{{schema_registry_acls}}"
   when: acls_enabled|bool
 
 - name: Create RoleBindings for RBAC

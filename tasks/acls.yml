@@ -1,14 +1,37 @@
 ---
+- name: Get Kafka Cluster ID
+  include_tasks: tasks/get_cluster_id.yml
+
 - name: Log into MDS through CLI
   include_tasks: tasks/mds_cli_login.yml
-  when: acls_enabled|bool
 
 - name: Create MDS ACLs
   shell: |
     /usr/local/bin/confluent iam acl create \
       --kafka-cluster-id {{cluster_id}} \
       --allow --principal User:{{ principal }} \
-      --operation {{item.operation}} \
-      --{{item.resource_type}} {{item.resource_name}}
-  loop: "{{ acls_list }}"
-  when: acls_enabled|bool
+      --operation {{item.1}} \
+      --{{item.0.resource_type}} {{item.0.resource_name}}
+  loop: "{{ acls_list | subelements('operations')}}"
+  # with_subelements:
+  #   - acls_list
+  #   - operations
+
+# - hosts: localhost
+#   gather_facts: no
+#   vars:
+#     objs:
+#       - { key1: value1, key2: [ value2, value3] }
+#       - { key1: value4, key2: [ value5, value6] }
+#   tasks:
+#
+#     - name: create directories
+#       file: path="{{ item.key1 }}"  state=directory
+#       with_items:
+#         objs
+#
+#     - name: create files
+#       file: path="{{ item.0.key1 }}/{{ item.1 }}"  state=touch
+#       with_subelements:
+#         - objs
+#         - key2

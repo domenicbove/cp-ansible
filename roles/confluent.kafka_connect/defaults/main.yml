@@ -45,3 +45,37 @@ kafka_connect:
     value.converter: io.confluent.connect.avro.AvroConverter
     plugin.path: /usr/share/java
     connector.client.config.override.policy: All
+
+kafka_connect_acls:
+  - resource_name: __consumer_offsets
+    resource_type: topic
+    operations:
+      - DESCRIBE
+  - resource_name: "{{ kafka_connect['properties']['group.id'] }}"
+    resource_type: consumer-group
+    operations:
+      - READ
+  - resource_name: "{{ kafka_connect['properties']['config.storage.topic'] }}"
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ
+      - DESCRIBE
+      - DESCRIBE-CONFIGS
+  - resource_name: "{{ kafka_connect['properties']['offset.storage.topic'] }}"
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ
+      - DESCRIBE
+      - DESCRIBE-CONFIGS
+  - resource_name: "{{ kafka_connect['properties']['status.storage.topic'] }}"
+    resource_type: topic
+    operations:
+      - WRITE
+      - CREATE
+      - READ
+      - DESCRIBE
+      - DESCRIBE-CONFIGS

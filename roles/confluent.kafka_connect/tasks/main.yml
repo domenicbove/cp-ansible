@@ -67,12 +67,12 @@
 - set_fact:
     kafka_connect_principal: kafka_connect
 
-- name: Create Centralized ACLS
-  include_tasks: tasks/acls.yml
-  vars:
-    principal: "{{kafka_connect_principal}}"
-    acls_list: "{{kafka_connect_acls}}"
-  when: acls_enabled|bool
+# - name: Create Centralized ACLS
+#   include_tasks: tasks/acls.yml
+#   vars:
+#     principal: "{{kafka_connect_principal}}"
+#     acls_list: "{{kafka_connect_acls}}"
+#   when: acls_enabled|bool
 
 - name: Create RoleBindings for RBAC
   include_tasks: rolebindings.yml

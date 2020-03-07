@@ -18,6 +18,8 @@ ssl.truststore.password={{kafka_rest_truststore_storepass}}
 {% endif %}
 {% endif %}
 
+# TODO open up ports to zk
+# Mar 07 00:45:35 ip-172-31-33-233.us-west-2.compute.internal kafka-rest-start[15260]: java.lang.IllegalArgumentException: A HostProvider may not be empty!
 zookeeper.connect={% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper.properties.clientPort}}{% endfor %}
 
 # Kafka Broker Configuration
@@ -78,11 +80,6 @@ confluent.metadata.server.urls.max.age.ms=60000
 client.confluent.metadata.server.urls.max.age.ms=60000
 
 # Credentials to use with the MDS
-{% if (rbac_enabled|bool and ssl_enabled|bool) and not (ssl_custom_certs|bool)%}
-confluent.metadata.basic.auth.user.info={{inventory_hostname}}:{{rbac_principal_password}}
-{% endif %}
-{% if rbac_enabled|bool and ssl_enabled|bool and ssl_custom_certs|bool %}
-confluent.metadata.basic.auth.user.info={{rbac_principal_name}}:{{rbac_principal_password}}
-{% endif %}
+confluent.metadata.basic.auth.user.info=kafka_rest:{{rbac_principal_password}}
 confluent.metadata.http.auth.credentials.provider=BASIC
 {% endif %}

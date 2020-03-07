@@ -20,7 +20,7 @@
   delay: 5
   when: ksql_ssl_enabled|bool and not rbac_enabled|bool
 
-- name: Wait for API to return 200 - HTTPS
+- name: Wait for API to return 200 - HTTPS - RBAC
   uri:
     url: "https://localhost:{{ksql_listener_port}}/info"
     status_code: 200

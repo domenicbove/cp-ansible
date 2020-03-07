@@ -11,7 +11,7 @@
 
 - name: Wait for API to return 200 - HTTPS
   uri:
-    url: "https://localhost:{{kafka_rest_port}}/topics"
+    url: "https://localhost:{{kafka_rest_port}}"
     status_code: 200
     validate_certs: no
   register: result

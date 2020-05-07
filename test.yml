@@ -1,0 +1,20 @@
+---
+- name: Zookeeper Provisioning
+  hosts: zookeeper
+  gather_facts: no
+  tasks:
+    - set_fact:
+        dom: bove
+
+    - debug:
+        var: "{{ hostvars['zookeeper1']['dom'] }}"
+
+- name: Kafka Broker Provisioning
+  hosts: kafka_broker
+  gather_facts: no
+  tasks:
+    - set_fact:
+        dommy: bovey
+
+    - debug:
+        var: "{{ hostvars['zookeeper1']['dom'] }}"

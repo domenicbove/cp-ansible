@@ -61,8 +61,8 @@ ssl_self_signed_ca_password: capassword123
 zookeeper_user: "{{zookeeper_default_user}}"
 zookeeper_group: "{{zookeeper_default_group}}"
 zookeeper:
-  properties:
-    clientPort: 2181
+  # properties:
+  #   clientPort: 2181
   log4j_file: /etc/kafka/zookeeper_log4j.properties
   jaas_file: /etc/kafka/zookeeper_jaas.conf
 
@@ -76,6 +76,47 @@ zookeeper_jmxexporter_config_path: /opt/prometheus/zookeeper.yml
 zookeeper_jmxexporter_port: 8079
 
 zookeeper_health_check_command: "exec 42<>/dev/tcp/127.0.0.1/{{zookeeper.properties.clientPort}}; echo -e 'srvr' >&42; cat <&42"
+
+# in 6.0.0 we keep this dictionary
+zookeeper_custom_properties:
+  this: that
+
+zookeeper_default_properties:
+  clientPort: 2181
+  maxClientCnxns: 0
+  initLimit: 5
+  syncLimit: 2
+  autopurge.snapRetainCount: 10
+  autopurge.purgeInterval: 1
+  dataDir: /var/lib/zookeeper
+  admin.enableServer: "false"
+
+zookeeper_final_properties: "merge of zookeeper_default_properties + zookeeper.properties"
+#conditionals around dont take any of our defaults
+# these conditionals should be component specific
+
+# obviously need 1-pager
+
+# makes need for 6.0-dev branch
+
+# next add in
+# Maintained by Ansible
+{% for key, value in zookeeper.properties.items() %}
+{{key}}={{value}}
+{% endfor %}
+{% if zookeeper_sasl_protocol == 'kerberos' %}
+authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+kerberos.removeHostFromPrincipal=true
+kerberos.removeRealmFromPrincipal=true
+{% endif %}
+{% for host in groups['zookeeper'] %}
+server.{{ hostvars[host]['zookeeper_id'] | default(groups.zookeeper.index(host) + 1)}}={{ zookeeper_current_node_hostname if host == inventory_hostname else host }}:{{zookeeper_peer_port}}:{{zookeeper_leader_port}}
+{% endfor %}
+
+
+
+
+
 
 # Kafka Broker Variables
 kafka_broker_default_listeners:

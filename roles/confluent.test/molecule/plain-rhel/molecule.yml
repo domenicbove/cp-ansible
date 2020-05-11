@@ -14,10 +14,10 @@ platforms:
     privileged: true
     networks:
       - name: confluent
-  - name: kafka-broker1
-    hostname: kafka-broker1.confluent
+  - name: zookeeper2
+    hostname: zookeeper2.confluent
     groups:
-      - kafka_broker
+      - zookeeper
     image: geerlingguy/docker-centos7-ansible
     dockerfile: ../Dockerfile.j2
     command: ""
@@ -26,79 +26,107 @@ platforms:
     privileged: true
     networks:
       - name: confluent
-  - name: schema-registry1
-    hostname: schema-registry1.confluent
-    groups:
-      - schema_registry
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    networks:
-      - name: confluent
-  - name: kafka-rest1
-    hostname: kafka-rest1.confluent
-    groups:
-      - kafka_rest
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    networks:
-      - name: confluent
-  - name: kafka-connect1
-    hostname: kafka-connect1.confluent
-    groups:
-      - kafka_connect
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    networks:
-      - name: confluent
-  - name: ksql1
-    hostname: ksql1.confluent
-    groups:
-      - ksql
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    networks:
-      - name: confluent
-  - name: control-center1
-    hostname: control-center1.confluent
-    groups:
-      - control_center
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    published_ports:
-      - "9021:9021"
-    networks:
-      - name: confluent
+  # - name: kafka-broker1
+  #   hostname: kafka-broker1.confluent
+  #   groups:
+  #     - kafka_broker
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   networks:
+  #     - name: confluent
+  # - name: schema-registry1
+  #   hostname: schema-registry1.confluent
+  #   groups:
+  #     - schema_registry
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   networks:
+  #     - name: confluent
+  # - name: kafka-rest1
+  #   hostname: kafka-rest1.confluent
+  #   groups:
+  #     - kafka_rest
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   networks:
+  #     - name: confluent
+  # - name: kafka-connect1
+  #   hostname: kafka-connect1.confluent
+  #   groups:
+  #     - kafka_connect
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   networks:
+  #     - name: confluent
+  # - name: ksql1
+  #   hostname: ksql1.confluent
+  #   groups:
+  #     - ksql
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   networks:
+  #     - name: confluent
+  # - name: control-center1
+  #   hostname: control-center1.confluent
+  #   groups:
+  #     - control_center
+  #   image: geerlingguy/docker-centos7-ansible
+  #   dockerfile: ../Dockerfile.j2
+  #   command: ""
+  #   volumes:
+  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
+  #   privileged: true
+  #   published_ports:
+  #     - "9021:9021"
+  #   networks:
+  #     - name: confluent
 provisioner:
   name: ansible
-  config_options:
-    defaults:
-      hash_behaviour: merge
+  # config_options:
+  #   defaults:
+  #     hash_behaviour: merge
   playbooks:
     converge: ../../../../all.yml
   inventory:
     group_vars:
       all:
         sasl_protocol: plain
+
+        zookeeper_sasl_protocol: kerberos
+
+        zookeeper_skip_configure: true
+        zookeeper_custom_group_properties:
+          initLimit: 20
+
+    host_vars:
+      zookeeper1:
+        zookeeper_custom_host_properties:
+          this: that
+
+      zookeeper2:
+        zookeeper_custom_host_properties:
+          dom: bove
+
 verifier:
   name: ansible
 lint: |

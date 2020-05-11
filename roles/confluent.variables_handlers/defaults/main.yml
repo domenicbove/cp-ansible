@@ -57,7 +57,7 @@ ssl_self_signed_ca_cert_filename: snakeoil-ca-1.crt
 ssl_self_signed_ca_key_filename: snakeoil-ca-1.key
 ssl_self_signed_ca_password: capassword123
 
-# Zookeeper Variables
+### Zookeeper Variables ###
 zookeeper_user: "{{zookeeper_default_user}}"
 zookeeper_group: "{{zookeeper_default_group}}"
 zookeeper:
@@ -77,10 +77,6 @@ zookeeper_jmxexporter_port: 8079
 
 zookeeper_health_check_command: "exec 42<>/dev/tcp/127.0.0.1/{{zookeeper.properties.clientPort}}; echo -e 'srvr' >&42; cat <&42"
 
-# in 6.0.0 we keep this dictionary
-zookeeper_custom_properties:
-  this: that
-
 zookeeper_default_properties:
   clientPort: 2181
   maxClientCnxns: 0
@@ -91,7 +87,23 @@ zookeeper_default_properties:
   dataDir: /var/lib/zookeeper
   admin.enableServer: "false"
 
-zookeeper_final_properties: "merge of zookeeper_default_properties + zookeeper.properties"
+# Inventory can have
+zookeeper_custom_properties: {}
+#   this: that
+
+# Allows total control of properties without cp-ansible's additions
+zookeeper_skip_configure: false
+
+# customers will want their custom props to overwrite the default ones, test this
+zookeeper_properties: >-
+    {{ zookeeper_custom_properties if zookeeper_skip_configure|bool
+    else zookeeper_default_properties | combine(zookeeper_custom_properties, recursive=True) }}
+
+zookeeper_sasl_kerberos_properties:
+  authProvider.sasl: org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+  kerberos.removeHostFromPrincipal: 'true'
+  kerberos.removeRealmFromPrincipal: 'true'
+
 #conditionals around dont take any of our defaults
 # these conditionals should be component specific
 
@@ -101,17 +113,17 @@ zookeeper_final_properties: "merge of zookeeper_default_properties + zookeeper.p
 
 # next add in
 # Maintained by Ansible
-{% for key, value in zookeeper.properties.items() %}
-{{key}}={{value}}
-{% endfor %}
-{% if zookeeper_sasl_protocol == 'kerberos' %}
-authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
-kerberos.removeHostFromPrincipal=true
-kerberos.removeRealmFromPrincipal=true
-{% endif %}
-{% for host in groups['zookeeper'] %}
-server.{{ hostvars[host]['zookeeper_id'] | default(groups.zookeeper.index(host) + 1)}}={{ zookeeper_current_node_hostname if host == inventory_hostname else host }}:{{zookeeper_peer_port}}:{{zookeeper_leader_port}}
-{% endfor %}
+# {% for key, value in zookeeper.properties.items() %}
+# {{key}}={{value}}
+# {% endfor %}
+# {% if zookeeper_sasl_protocol == 'kerberos' %}
+# authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+# kerberos.removeHostFromPrincipal=true
+# kerberos.removeRealmFromPrincipal=true
+# {% endif %}
+# {% for host in groups['zookeeper'] %}
+# server.{{ hostvars[host]['zookeeper_id'] | default(groups.zookeeper.index(host) + 1)}}={{ zookeeper_current_node_hostname if host == inventory_hostname else host }}:{{zookeeper_peer_port}}:{{zookeeper_leader_port}}
+# {% endfor %}
 
 
 

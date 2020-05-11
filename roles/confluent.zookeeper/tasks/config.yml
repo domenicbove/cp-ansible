@@ -1,0 +1,25 @@
+---
+- debug: var=vars
+
+# put confidtional on this task file, should never enter here if zookeeper_skip_configure==true
+- set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(zookeeper_sasl_kerberos_properties, recursive=True) }}"
+  when: zookeeper_sasl_protocol == 'kerberos'
+
+- debug:
+    var: zookeeper_properties
+
+
+# next add in
+# Maintained by Ansible
+# {% for key, value in zookeeper.properties.items() %}
+# {{key}}={{value}}
+# {% endfor %}
+# {% if zookeeper_sasl_protocol == 'kerberos' %}
+# authProvider.sasl=org.apache.zookeeper.server.auth.SASLAuthenticationProvider
+# kerberos.removeHostFromPrincipal=true
+# kerberos.removeRealmFromPrincipal=true
+# {% endif %}
+# {% for host in groups['zookeeper'] %}
+# server.{{ hostvars[host]['zookeeper_id'] | default(groups.zookeeper.index(host) + 1)}}={{ zookeeper_current_node_hostname if host == inventory_hostname else host }}:{{zookeeper_peer_port}}:{{zookeeper_leader_port}}
+# {% endfor %}

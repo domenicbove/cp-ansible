@@ -63,6 +63,7 @@
     state: directory
     mode: 0750
 
+# TODO take kafka_broker_properties['logsdir'], separate by comma and loop over that
 - name: Set Permissions on Data Dirs
   file:
     path: "{{item}}"
@@ -71,6 +72,7 @@
     state: directory
     mode: 0750
   with_items: "{{kafka_broker.datadir}}"
+  # with_items: "{{kafka_broker_properties['logsdir'].split(',') }}"
 
 - name: Set Permissions on Data Dir files
   file:

@@ -96,8 +96,6 @@ zookeeper_sasl_kerberos_properties:
   kerberos.removeHostFromPrincipal: 'true'
   kerberos.removeRealmFromPrincipal: 'true'
 
-
-
 # Kafka Broker Variables
 kafka_broker_default_listeners:
   internal:
@@ -149,6 +147,42 @@ kafka_broker_jmxexporter_enabled: "{{jmxexporter_enabled}}"
 kafka_broker_jmxexporter_config_path: /opt/prometheus/kafka.yml
 kafka_broker_jmxexporter_port: 8080
 
+# TODO should this be in the kafka role??
+#no- there are times where some other components need to know of each others props
+kafka_broker_default_interal_replication_factor: "{{ [ groups['kafka_broker'] | length, 3 ] | min }}"
+
+kafka_broker_default_properties:
+  group.initial.rebalance.delay.ms: 0
+  log.retention.check.interval.ms: 300000
+  log.retention.hours: 168
+  log.segment.bytes: 1073741824
+  num.io.threads: 16
+  num.network.threads: 8
+  num.partitions: 1
+  num.recovery.threads.per.data.dir: 2
+  offsets.topic.replication.factor: "{{kafka_broker_default_interal_replication_factor}}"
+  socket.receive.buffer.bytes: 102400
+  socket.request.max.bytes: 104857600
+  socket.send.buffer.bytes: 102400
+  transaction.state.log.min.isr: 2
+  transaction.state.log.replication.factor: "{{kafka_broker_default_interal_replication_factor}}"
+  zookeeper.connection.timeout.ms: 18000
+  confluent.license.topic.replication.factor: "{{kafka_broker_default_interal_replication_factor}}"
+  confluent.metadata.topic.replication.factor: "{{kafka_broker_default_interal_replication_factor}}"
+  confluent.support.metrics.enable: "{{confluent.support.metrics_enabled|bool|lower}}"
+  confluent.support.customer.id: "{{confluent.support.customer_id}}"
+  zookeeper.connect: "{% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper_properties.clientPort}}{% endfor %}"
+  log.dirs: /var/lib/kafka/data
+  listener.security.protocol.map: "{% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}:{{ listener['value'] | kafka_protocol_defaults(ssl_enabled, sasl_protocol)}}{% endfor %}"
+  listeners: "{% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}://:{{ listener['value']['port'] }}{% endfor %}"
+  advertised.listeners: "{% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}://{{ listener['value']['hostname'] | default(inventory_hostname) }}:{{ listener['value']['port'] }}{% endfor %}"
+  inter.broker.listener.name: "{{kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['name']}}"
+
+kafka_broker_custom_properties: {}
+kafka_broker_properties: "{{ kafka_broker_default_properties | combine(kafka_broker_custom_properties, recursive=True) }}"
+
+
+
 # Schema Registry Variables
 schema_registry_user: "{{schema_registry_default_user}}"
 schema_registry_group: "{{schema_registry_default_group}}"
@@ -171,6 +205,18 @@ schema_registry:
 schema_registry_jolokia_enabled: "{{jolokia_enabled}}"
 schema_registry_jolokia_port: 7772
 schema_registry_jolokia_ssl_enabled: "{{ schema_registry_ssl_enabled }}"
+
+schema_registry_default_properties:
+  debug: false
+  schema.registry.group.id: schema-registry
+  kafkastore.topic: _schemas
+
+schema_registry_custom_properties: {}
+schema_registry_properties: "{{ schema_registry_default_properties | combine(schema_registry_custom_properties, recursive=True) }}"
+
+
+
+
 
 # Kafka Rest Variables
 kafka_rest_user: "{{kafka_rest_default_user}}"

@@ -1,13 +1,9 @@
-# Maintained by Ansible
-zookeeper.connect={% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper_properties.clientPort}}{% endfor %}
-
-log.dirs={% for logdir in kafka_broker.datadir %}{% if loop.index > 1%},{% endif %}{{ logdir }}{% endfor %}
-
-broker.id={{ broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1)}}
-
-{% for key, value in kafka_broker.properties.items() %}
+# Written by Ansible
+{% for key, value in kafka_broker_properties|dictsort %}
 {{key}}={{value}}
 {% endfor %}
+
+broker.id={{ broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1)}}
 
 {% if zookeeper_sasl_protocol == 'kerberos' %}
 zookeeper.set.acl=true
@@ -17,15 +13,6 @@ enable.fips=true
 security.providers=io.confluent.kafka.security.fips.provider.BcFipsProviderCreator,io.confluent.kafka.security.fips.provider.BcFipsJsseProviderCreator
 {% endif %}
 
-listener.security.protocol.map={% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}:{{ listener['value'] | kafka_protocol_defaults(ssl_enabled, sasl_protocol)}}{% endfor %}
-
-listeners={% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}://:{{ listener['value']['port'] }}{% endfor %}
-
-advertised.listeners={% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}://{{ listener['value']['hostname'] | default(inventory_hostname) }}:{{ listener['value']['port'] }}{% endfor %}
-
-
-## Inter Broker Listener Configuration
-inter.broker.listener.name={{kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['name']}}
 {% if kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol != 'none' %}
 sasl.mechanism.inter.broker.protocol={{kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol}}
 {% endif %}

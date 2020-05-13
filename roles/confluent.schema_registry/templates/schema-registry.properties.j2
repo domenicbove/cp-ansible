@@ -1,5 +1,5 @@
 # Maintained by Ansible
-{% for key, value in schema_registry.properties.items() %}
+{% for key, value in schema_registry_properties|dictsort %}
 {{key}}={{value}}
 {% endfor %}
 

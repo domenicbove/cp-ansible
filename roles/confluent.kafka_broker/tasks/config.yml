@@ -1,0 +1,61 @@
+---
+- name: Add broker.id Property
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      { 'broker.id': broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1) | string }
+    ) }}"
+
+- name: Add zookeeper.set.acl Property
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      { 'zookeeper.set.acl': 'true' }
+    ) }}"
+  when: zookeeper_sasl_protocol == 'kerberos'
+
+- name: Add Fips Properties
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      {
+        'enable.fips': 'true',
+        'security.providers': 'io.confluent.kafka.security.fips.provider.BcFipsProviderCreator,io.confluent.kafka.security.fips.provider.BcFipsJsseProviderCreator'
+      }
+    ) }}"
+  when: fips_enabled|bool
+
+- name: Add sasl.mechanism.inter.broker.protocol Property
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      {
+        'sasl.mechanism.inter.broker.protocol': kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol
+      }
+    ) }}"
+  when: kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol != 'none'
+
+- debug: var=kafka_broker_properties
+
+# - name: Add Kerberos Properties
+#   set_fact:
+#     zookeeper_properties: "{{ zookeeper_properties | combine(zookeeper_sasl_kerberos_properties, recursive=True) }}"
+#   when: zookeeper_sasl_protocol == 'kerberos'
+#
+# - name: Add Zookeeper Hosts
+#   set_fact:
+#     zookeeper_properties: "{{ zookeeper_properties | combine( {
+#       'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
+#       item + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
+#     } ) }}"
+#   with_items: "{{ groups['zookeeper'] }}"
+#   when: item != inventory_hostname
+#
+# - name: Add Zookeeper Hosts
+#   set_fact:
+#     zookeeper_properties: "{{ zookeeper_properties | combine( {
+#       'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
+#       zookeeper_current_node_hostname + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
+#     } ) }}"
+#   with_items: "{{ groups['zookeeper'] }}"
+#   when: item == inventory_hostname
+
+- name: Add Custom Properties
+  set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(zookeeper_custom_properties, recursive=True) }}"

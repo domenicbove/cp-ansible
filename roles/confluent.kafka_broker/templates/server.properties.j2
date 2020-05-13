@@ -3,19 +3,7 @@
 {{key}}={{value}}
 {% endfor %}
 
-broker.id={{ broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1)}}
 
-{% if zookeeper_sasl_protocol == 'kerberos' %}
-zookeeper.set.acl=true
-{% endif %}
-{% if fips_enabled|bool %}
-enable.fips=true
-security.providers=io.confluent.kafka.security.fips.provider.BcFipsProviderCreator,io.confluent.kafka.security.fips.provider.BcFipsJsseProviderCreator
-{% endif %}
-
-{% if kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol != 'none' %}
-sasl.mechanism.inter.broker.protocol={{kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol}}
-{% endif %}
 {% if kafka_broker_sasl_enabled_mechanisms|length > 0 %}
 sasl.enabled.mechanisms={% for mechanism in kafka_broker_sasl_enabled_mechanisms %}{% if loop.index > 1%},{% endif %}{{ mechanism|upper }}{% endfor %}
 

@@ -112,6 +112,10 @@ provisioner:
       all:
         sasl_protocol: plain
 
+        zookeeper_sasl_protocol: kerberos
+
+        fips_enabled: true
+
         zookeeper_custom_properties:
           initLimit: 20
 

@@ -1,9 +1,4 @@
 ---
-- name: Zookeeper Health Check
-  include_tasks: config.yml
-
-- fail:
-
 - include_role:
     name: confluent.common
   when: not common_role_completed|bool
@@ -33,6 +28,9 @@
     system: true
     group: "{{zookeeper_group}}"
 
+- name: Populate Properties Dictionary
+  include_tasks: config.yml
+
 - name: Configure Kerberos
   include_role:
     name: confluent.kerberos
@@ -45,7 +43,7 @@
 
 - name: Set Zookeeper dataDir ownership
   file:
-    path: "{{zookeeper.properties.dataDir}}"
+    path: "{{zookeeper_properties.dataDir}}"
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
     state: directory
@@ -53,7 +51,7 @@
 
 - name: Set Ownership of Data Dir files
   file:
-    path: "{{zookeeper.properties.dataDir}}"
+    path: "{{zookeeper_properties.dataDir}}"
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
     recurse: true
@@ -61,10 +59,13 @@
 - name: Create Zookeeper myid File
   template:
     src: myid.j2
-    dest: "{{zookeeper.properties.dataDir}}/myid"
+    dest: "{{zookeeper_properties.dataDir}}/myid"
     mode: 0555
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
+
+- name: Zookeeper Health Check
+  include_tasks: config.yml
 
 - name: Create Zookeeper Config
   template:

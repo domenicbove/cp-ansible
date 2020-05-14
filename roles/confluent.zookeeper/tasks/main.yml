@@ -3,6 +3,14 @@
     name: confluent.common
   when: not common_role_completed|bool
 
+- setup:
+    filter: "{{item}}"
+    gather_subset:
+      - '!all'
+  loop:
+    - ansible_os_family
+    - ansible_fqdn
+
 - name: Install the Zookeeper Packages
   yum:
     name: "{{item}}{{confluent_package_redhat_suffix}}"

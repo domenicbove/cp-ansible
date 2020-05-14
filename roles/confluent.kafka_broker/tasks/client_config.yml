@@ -84,9 +84,9 @@
     client_properties: "{{ client_properties | combine(
       {
         config_prefix + 'sasl.mechanism': 'OAUTHBEARER',
-        config_prefix + 'sasl.login.callback.handler.class': 'io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler'
-        config_prefix + 'sasl.jaas.config': org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
-           username=\"' + oauth_username + '\" password= \"' + oauth_password + '\"
+        config_prefix + 'sasl.login.callback.handler.class': 'io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler',
+        config_prefix + 'sasl.jaas.config': 'org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
+           username=\"' + oauth_username + '\" password=\"' + oauth_password + '\"
            metadataServerUrls=\"' + mds_http_protocol + '://' + groups['kafka_broker'] | join(':' + mds_port|string + ',' + mds_http_protocol + '://') + ':' + mds_port|string + '\";'
       }
     ) }}"

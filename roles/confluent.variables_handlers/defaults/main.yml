@@ -101,7 +101,7 @@ zookeeper_default_properties:
   dataDir: /var/lib/zookeeper
   admin.enableServer: "false"
 
-zookeeper_properties: "{{ zookeeper_default_properties | combine(zookeeper_custom_properties, recursive=True) }}"
+zookeeper_properties: "{{ zookeeper_default_properties | combine(zookeeper_custom_properties) }}"
 
 
 
@@ -190,7 +190,7 @@ kafka_broker_default_properties:
   inter.broker.listener.name: "{{kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['name']}}"
 
 kafka_broker_custom_properties: {}
-kafka_broker_properties: "{{ kafka_broker_default_properties | combine(kafka_broker_custom_properties, recursive=True) }}"
+kafka_broker_properties: "{{ kafka_broker_default_properties | combine(kafka_broker_custom_properties) }}"
 
 
 
@@ -221,9 +221,14 @@ schema_registry_default_properties:
   debug: false
   schema.registry.group.id: schema-registry
   kafkastore.topic: _schemas
+  listeners: "{{schema_registry_http_protocol}}://0.0.0.0:{{schema_registry_listener_port}}"
+  host.name: "{{inventory_hostname}}"
+  inter.instance.protocol: "{{schema_registry_http_protocol}}"
+  kafkastore.bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[schema_registry_kafka_listener_name]['port']}}{% endfor %}"
+
 
 schema_registry_custom_properties: {}
-schema_registry_properties: "{{ schema_registry_default_properties | combine(schema_registry_custom_properties, recursive=True) }}"
+schema_registry_properties: "{{ schema_registry_default_properties | combine(schema_registry_custom_properties) }}"
 
 
 

@@ -1,7 +1,4 @@
 ---
-# - set_fact:
-#     kafka_broker_properties: {}
-
 - name: Add broker.id Property
   set_fact:
     kafka_broker_properties: "{{ kafka_broker_properties | combine(
@@ -209,7 +206,7 @@
     ) }}"
   when: kafka_broker_metrics_reporter_enabled|bool
 
-- name: Populate Metrics Reporter Properties
+- name: Create Kafka Client Property Dict
   include_tasks: client_config.yml
   vars:
     config_prefix: 'confluent.metrics.reporter.'

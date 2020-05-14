@@ -1,0 +1,69 @@
+---
+- name: Add SSL Properties
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(
+      {
+          'security.protocol': 'SSL',
+          'ssl.keystore.location': schema_registry_keystore_path,
+          'ssl.keystore.password': schema_registry_keystore_storepass,
+          'ssl.key.password': schema_registry_keystore_keypass
+      }
+    ) }}"
+  when: schema_registry_ssl_enabled|bool
+
+# TODO this is not true mtls
+- name: Add MTLS Property
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(
+      {
+        'ssl.truststore.location': schema_registry_truststore_path,
+        'ssl.truststore.password': schema_registry_truststore_storepass,
+        'ssl.client.auth': 'false'
+      }
+    ) }}"
+  when: schema_registry_ssl_mutual_auth_enabled|bool or mds_ssl_enabled|bool
+
+- name: Create Kafka Client Property Dict
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'kafkastore.'
+    listener: "{{kafka_broker_listeners[schema_registry_kafka_listener_name]}}"
+    truststore_path: "{{schema_registry_truststore_path}}"
+    truststore_storepass: "{{schema_registry_truststore_storepass}}"
+    keystore_path: "{{schema_registry_keystore_path}}"
+    keystore_storepass: "{{schema_registry_keystore_storepass}}"
+    keystore_keypass: "{{schema_registry_keystore_keypass}}"
+    sasl_plain_username: "{{sasl_plain_users.schema_registry.principal}}"
+    sasl_plain_password: "{{sasl_plain_users.schema_registry.password}}"
+    sasl_scram_username: "{{sasl_scram_users.schema_registry.principal}}"
+    sasl_scram_password: "{{sasl_scram_users.schema_registry.password}}"
+    kerberos_keytab_path: "{{schema_registry_kerberos_keytab_path}}"
+    kerberos_principal: "{{schema_registry_kerberos_principal}}"
+    oauth_username: "{{schema_registry_ldap_user}}"
+    oauth_password: "{{schema_registry_ldap_password}}"
+
+- name: Add Kafka Client Properties
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(client_properties) }}"
+
+- name: Add RBAC Properties
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(
+      {
+        'kafkastore.connection.url': groups['zookeeper'] | join(':' + zookeeper_properties.clientPort|string + ',') + ':' + zookeeper_properties.clientPort|string,
+        'schema.registry.resource.extension.class': 'io.confluent.kafka.schemaregistry.security.SchemaRegistrySecurityResourceExtension',
+        'confluent.schema.registry.authorizer.class': 'io.confluent.kafka.schemaregistry.security.authorizer.rbac.RbacAuthorizer',
+        'rest.servlet.initializor.classes': 'io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler',
+        'confluent.schema.registry.auth.mechanism': 'JETTY_AUTH',
+        'public.key.path': rbac_enabled_public_pem_path,
+        'authentication.roles': '**',
+        'confluent.metadata.bootstrap.server.urls': mds_http_protocol + '://' + groups['kafka_broker'] | join(':' + mds_port|string + ',' + mds_http_protocol + '://') + ':' + mds_port|string,
+        'confluent.metadata.http.auth.credentials.provider': 'BASIC',
+        'confluent.metadata.basic.auth.user.info': schema_registry_ldap_user + ':' + schema_registry_ldap_password
+      }
+    ) }}"
+  when: rbac_enabled|bool
+
+- name: Add Custom Properties
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(schema_registry_custom_properties) }}"

@@ -12,16 +12,24 @@
   when: schema_registry_ssl_enabled|bool
 
 # TODO this is not true mtls
-- name: Add MTLS Property
+- name: Add Truststore Properties
   set_fact:
     schema_registry_properties: "{{ schema_registry_properties | combine(
       {
         'ssl.truststore.location': schema_registry_truststore_path,
         'ssl.truststore.password': schema_registry_truststore_storepass,
-        'ssl.client.auth': 'false'
       }
     ) }}"
   when: schema_registry_ssl_mutual_auth_enabled|bool or mds_ssl_enabled|bool
+
+- name: Add MTLS Property
+  set_fact:
+    schema_registry_properties: "{{ schema_registry_properties | combine(
+      {
+        'ssl.client.auth': 'true'
+      }
+    ) }}"
+  when: schema_registry_ssl_mutual_auth_enabled|bool
 
 - name: Create Kafka Client Property Dict
   include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml

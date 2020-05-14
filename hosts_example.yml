@@ -23,8 +23,9 @@ all:
     # sasl_protocol: kerberos
 
     #### Zookeeper SASL Authentication ####
-    ## By default when sasl_protocol = kerberos, zookeeper will also use sasl kerberos. It can also be configured with:
-    # zookeeper_sasl_protocol: <none/kerberos>
+    ## Zookeeper can have Kerberos (GSSAPI) or Digest-MD5 SASL Authentication
+    ## By default when sasl_protocol = kerberos, zookeeper will also use sasl kerberos. It can  be configured with:
+    # zookeeper_sasl_protocol: <none/kerberos/digest>
 
     #### Kerberos Configuration ####
     ## Applicable when sasl_protocol is kerberos
@@ -61,6 +62,13 @@ all:
     # ssl_truststore_filepath: "/tmp/certs/truststore.jks"
     # ssl_truststore_password: truststorepass
     # ssl_truststore_ca_cert_alias: <alias to the ca certificate in the truststore eg. CARoot>
+
+    #### Zookeeper TLS Configuration ####
+    ## Zookeeper can also have TLS Encryption and mTLS Authentication
+    ## For backwards compatibility both will be turned off by default, even if ssl_enabled is set to true
+    ## To enable TLS encryption and mTLS authentication uncomment these respectively
+    # zookeeper_ssl_enabled: true
+    # zookeeper_ssl_mutual_auth_enabled: true
 
     #### Certificate Regeneration ####
     ## When using self signed certificates, each playbook run will regenerate the CA, to turn this off, uncomment this line:
@@ -218,9 +226,6 @@ zookeeper:
   # vars:
   #   zookeeper_user: custom-user
   #   zookeeper_group: custom-group
-  #
-  #   ## To update hostname of current zookeeper host in zookeeper.properties use below variable
-  #   zookeeper_current_node_hostname: 0.0.0.0 # some debian hosts resolve the hostname to localhost, this setting tells zookeeper to listen on all interfaces
   hosts:
     ip-172-31-34-246.us-east-2.compute.internal:
       ## By default the first host will get zookeeper id=1, second gets id=2. Set zookeeper_id to customize

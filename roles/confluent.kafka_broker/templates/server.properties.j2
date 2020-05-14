@@ -2,36 +2,3 @@
 {% for key, value in kafka_broker_properties|dictsort%}
 {{key}}={{value}}
 {% endfor %}
-
-{% if rbac_enabled|bool %}
-# MDS Configuration
-confluent.metadata.server.listeners={{mds_http_protocol}}://0.0.0.0:{{mds_port}}
-confluent.metadata.server.advertised.listeners={{mds_http_protocol}}://{{ mds_advertised_listener_hostname | default(inventory_hostname) }}:{{mds_port}}
-confluent.metadata.server.token.auth.enable=true
-confluent.metadata.server.token.max.lifetime.ms=3600000
-confluent.metadata.server.token.key.path={{rbac_enabled_private_pem_path}}
-confluent.metadata.server.public.key.path={{rbac_enabled_public_pem_path}}
-confluent.metadata.server.token.signature.algorithm=RS256
-confluent.metadata.server.authentication.method=BEARER
-{% if mds_ssl_enabled|bool %}
-confluent.metadata.server.ssl.keystore.location={{kafka_broker_keystore_path}}
-confluent.metadata.server.ssl.keystore.password={{kafka_broker_keystore_storepass}}
-confluent.metadata.server.ssl.key.password={{kafka_broker_keystore_keypass}}
-{% if mds_ssl_mutual_auth_enabled|bool %}
-confluent.metadata.server.ssl.truststore.location={{kafka_broker_truststore_path}}
-confluent.metadata.server.ssl.truststore.password={{kafka_broker_truststore_storepass}}
-confluent.metadata.server.ssl.client.auth=true
-{% endif %}
-{% endif %}
-
-# Authorization Configuration
-authorizer.class.name=io.confluent.kafka.security.authorizer.ConfluentServerAuthorizer
-confluent.authorizer.access.rule.providers=CONFLUENT{% if mds_acls_enabled|bool %},ZK_ACL{% endif %}
-
-confluent.authorizer.group.provider=CONFLUENT
-super.users={{super_users | join(';')}}
-
-# LDAP Configuration
-{{ldap_config}}
-
-{% endif %}

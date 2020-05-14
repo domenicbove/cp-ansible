@@ -14,18 +14,6 @@ platforms:
     privileged: true
     networks:
       - name: confluent
-  - name: zookeeper2
-    hostname: zookeeper2.confluent
-    groups:
-      - zookeeper
-    image: geerlingguy/docker-centos7-ansible
-    dockerfile: ../Dockerfile.j2
-    command: ""
-    volumes:
-      - /sys/fs/cgroup:/sys/fs/cgroup:ro
-    privileged: true
-    networks:
-      - name: confluent
   - name: kafka-broker1
     hostname: kafka-broker1.confluent
     groups:
@@ -62,10 +50,10 @@ platforms:
     privileged: true
     networks:
       - name: confluent
-  - name: schema-registry2
-    hostname: schema-registry2.confluent
+  - name: kafka-rest1
+    hostname: kafka-rest1.confluent
     groups:
-      - schema_registry
+      - kafka_rest
     image: geerlingguy/docker-centos7-ansible
     dockerfile: ../Dockerfile.j2
     command: ""
@@ -74,56 +62,44 @@ platforms:
     privileged: true
     networks:
       - name: confluent
-  # - name: kafka-rest1
-  #   hostname: kafka-rest1.confluent
-  #   groups:
-  #     - kafka_rest
-  #   image: geerlingguy/docker-centos7-ansible
-  #   dockerfile: ../Dockerfile.j2
-  #   command: ""
-  #   volumes:
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   privileged: true
-  #   networks:
-  #     - name: confluent
-  # - name: kafka-connect1
-  #   hostname: kafka-connect1.confluent
-  #   groups:
-  #     - kafka_connect
-  #   image: geerlingguy/docker-centos7-ansible
-  #   dockerfile: ../Dockerfile.j2
-  #   command: ""
-  #   volumes:
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   privileged: true
-  #   networks:
-  #     - name: confluent
-  # - name: ksql1
-  #   hostname: ksql1.confluent
-  #   groups:
-  #     - ksql
-  #   image: geerlingguy/docker-centos7-ansible
-  #   dockerfile: ../Dockerfile.j2
-  #   command: ""
-  #   volumes:
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   privileged: true
-  #   networks:
-  #     - name: confluent
-  # - name: control-center1
-  #   hostname: control-center1.confluent
-  #   groups:
-  #     - control_center
-  #   image: geerlingguy/docker-centos7-ansible
-  #   dockerfile: ../Dockerfile.j2
-  #   command: ""
-  #   volumes:
-  #     - /sys/fs/cgroup:/sys/fs/cgroup:ro
-  #   privileged: true
-  #   published_ports:
-  #     - "9021:9021"
-  #   networks:
-  #     - name: confluent
+  - name: kafka-connect1
+    hostname: kafka-connect1.confluent
+    groups:
+      - kafka_connect
+    image: geerlingguy/docker-centos7-ansible
+    dockerfile: ../Dockerfile.j2
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    networks:
+      - name: confluent
+  - name: ksql1
+    hostname: ksql1.confluent
+    groups:
+      - ksql
+    image: geerlingguy/docker-centos7-ansible
+    dockerfile: ../Dockerfile.j2
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    networks:
+      - name: confluent
+  - name: control-center1
+    hostname: control-center1.confluent
+    groups:
+      - control_center
+    image: geerlingguy/docker-centos7-ansible
+    dockerfile: ../Dockerfile.j2
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    published_ports:
+      - "9021:9021"
+    networks:
+      - name: confluent
 provisioner:
   name: ansible
   config_options:
@@ -134,34 +110,7 @@ provisioner:
   inventory:
     group_vars:
       all:
-
-        scenario_name: plain-rhel
-
         sasl_protocol: plain
-        # kerberos_kafka_broker_primary: kafka
-        # kafka_broker_kerberos_principal: "{{kerberos_kafka_broker_primary}}/{{inventory_hostname}}.confluent@{{kerberos.realm | upper}}"
-        # kafka_broker_kerberos_keytab_path: "roles/confluent.test/molecule/{{scenario_name}}/keytabs/kafka_broker-{{inventory_hostname}}.keytab"
-        #
-        # kerberos_kafka_broker_primary: kafka
-        # kerberos:
-        #   realm: realm.example.com
-        #   kdc_hostname: kerberos1
-        #   admin_hostname: kerberos1
-
-        # schema_registry_ssl_enabled: true
-        kafka_broker_schema_validation_enabled: true
-
-        # zookeeper_sasl_protocol: kerberos
-        ssl_enabled: true
-        ssl_mutual_auth_enabled: true
-
-        zookeeper_ssl_enabled: true
-        zookeeper_ssl_mutual_auth_enabled: true
-
-        # fips_enabled: true
-        #
-        # zookeeper_custom_properties:
-        #   initLimit: 20
 
 verifier:
   name: ansible

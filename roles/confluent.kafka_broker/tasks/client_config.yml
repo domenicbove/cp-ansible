@@ -1,0 +1,45 @@
+---
+- name: Initialize the Client Properties Dict
+  set_fact:
+    client_properties: {}
+
+- name: Add Security Protocol Variable
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
+        config_prefix + 'security.protocol': listener | kafka_protocol_defaults(sasl_protocol, ssl_enabled)
+      }
+    ) }}"
+
+- name: Add SSL Variables
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
+        config_prefix + 'ssl.truststore.location': truststore_path,
+        config_prefix + 'ssl.truststore.password': truststore_storepass
+      }
+    ) }}"
+  when: listener['ssl_enabled'] | default(ssl_enabled) | bool
+
+- name: Add MTLS Variables
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
+        config_prefix + 'ssl.keystore.location': keystore_path,
+        config_prefix + 'ssl.keystore.password': keystore_storepass,
+        config_prefix + 'ssl.key.password': keystore_keypass
+      }
+    ) }}"
+  when: listener['ssl_mutual_auth_enabled'] | default(ssl_mutual_auth_enabled) | bool
+
+- name: Add MTLS Variables
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
+        config_prefix + 'ssl.keymanager.algorithm': PKIX,
+        config_prefix + 'ssl.trustmanager.algorithm': PKIX,
+        config_prefix + 'ssl.keystore.type': pkcs12,
+        config_prefix + 'ssl.truststore.type': pkcs12
+      }
+    ) }}"
+  when: listener['pkcs12_enabled'] | default(pkcs12_enabled) | bool

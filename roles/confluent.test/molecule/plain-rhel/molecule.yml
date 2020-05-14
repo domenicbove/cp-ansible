@@ -110,15 +110,31 @@ provisioner:
   inventory:
     group_vars:
       all:
-        sasl_protocol: kerberos
-        kerberos_kafka_broker_primary: kafka
+
+        scenario_name: plain-rhel
+
+        sasl_protocol: scram
+        # kerberos_kafka_broker_primary: kafka
+        # kafka_broker_kerberos_principal: "{{kerberos_kafka_broker_primary}}/{{inventory_hostname}}.confluent@{{kerberos.realm | upper}}"
+        # kafka_broker_kerberos_keytab_path: "roles/confluent.test/molecule/{{scenario_name}}/keytabs/kafka_broker-{{inventory_hostname}}.keytab"
+        #
+        # kerberos_kafka_broker_primary: kafka
+        # kerberos:
+        #   realm: realm.example.com
+        #   kdc_hostname: kerberos1
+        #   admin_hostname: kerberos1
+
+        # schema_registry_ssl_enabled: true
+        # kafka_broker_schema_validation_enabled: true
 
         # zookeeper_sasl_protocol: kerberos
 
-        fips_enabled: true
+        ssl_enabled: true
 
-        zookeeper_custom_properties:
-          initLimit: 20
+        # fips_enabled: true
+        #
+        # zookeeper_custom_properties:
+        #   initLimit: 20
 
 verifier:
   name: ansible

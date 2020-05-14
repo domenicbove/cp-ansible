@@ -5,27 +5,6 @@
 
 
 
-{% for listener in kafka_broker_listeners|dict2items %}
-{% include 'listener.j2' %}
-
-{% endfor %}
-
-{% if kafka_broker_schema_validation_enabled|bool %}
-{% set schema_registries = groups.get('schema_registry', []) %}
-{% if schema_registries %}
-# Schema Registry Configuration
-confluent.schema.registry.url={% for host in groups['schema_registry'] %}{% if loop.index > 1%},{% endif %}{{ schema_registry_http_protocol }}://{{ host }}:{{ schema_registry_listener_port }}{% endfor %}
-
-{% if schema_registry_ssl_enabled|bool %}
-confluent.schema.registry.ssl.truststore.location={{kafka_broker_truststore_path}}
-confluent.schema.registry.ssl.truststore.password={{kafka_broker_truststore_storepass}}
-confluent.schema.registry.ssl.keystore.location={{kafka_broker_keystore_path}}
-confluent.schema.registry.ssl.keystore.password={{kafka_broker_keystore_storepass}}
-confluent.schema.registry.ssl.key.password={{kafka_broker_keystore_keypass}}
-{% endif %}
-{% endif %}
-{% endif %}
-
 {% if kafka_broker_metrics_reporter_enabled|bool %}
 ######## Metrics Reporter #########
 metric.reporters=io.confluent.metrics.reporter.ConfluentMetricsReporter

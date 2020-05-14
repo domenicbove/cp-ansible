@@ -44,50 +44,79 @@
     ) }}"
   when: listener['pkcs12_enabled'] | default(pkcs12_enabled) | bool
 
-- name: Add Sasl Plain Variables
+- name: Add Sasl Mechanism Property
   set_fact:
     client_properties: "{{ client_properties | combine(
       {
-        config_prefix + 'sasl.mechanism': 'PLAIN',
+        config_prefix + 'sasl.mechanism': listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol
+      }
+    ) }}"
+  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol != 'none'
+
+- name: Add Sasl Plain Jaas Property
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
         config_prefix + 'sasl.jaas.config': 'org.apache.kafka.common.security.plain.PlainLoginModule required
           username=\"' + sasl_plain_username + '\" password=\"' + sasl_plain_password + '\";'
       }
     ) }}"
-  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'PLAIN'
+  when:
+    - listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'PLAIN'
+    - not omit_jaas_configs | default(false) | bool
 
-- name: Add Sasl SCRAM Variables
+- name: Add Sasl Scram Jaas Property
   set_fact:
     client_properties: "{{ client_properties | combine(
       {
-        config_prefix + 'sasl.mechanism': 'SCRAM-SHA-256',
         config_prefix + 'sasl.jaas.config': 'org.apache.kafka.common.security.scram.ScramLoginModule required
           username=\"' + sasl_scram_username + '\" password=\"' + sasl_scram_password + '\";'
       }
     ) }}"
-  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'SCRAM-SHA-256'
+  when:
+    - listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'SCRAM-SHA-256'
+    - not omit_jaas_configs | default(false) | bool
 
-- name: Add Sasl GSSAPI Variables
+- name: Add Sasl GSSAPI Properties
   set_fact:
     client_properties: "{{ client_properties | combine(
       {
-        config_prefix + 'sasl.mechanism': 'GSSAPI',
-        config_prefix + 'sasl.kerberos.service.name': kerberos_kafka_broker_primary,
+        config_prefix + 'sasl.kerberos.service.name': kerberos_kafka_broker_primary
+      }
+    ) }}"
+  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'GSSAPI'
+
+- name: Add Sasl GSSAPI Jaas Property
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
         config_prefix + 'sasl.jaas.config': 'com.sun.security.auth.module.Krb5LoginModule required
            useKeyTab=true storeKey=true keyTab=\"' + kerberos.keytab_dir + '/' + kerberos_keytab_path | basename '\"
            principal=\"' + kerberos_principal + '\";'
       }
     ) }}"
-  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'GSSAPI'
+  when:
+    - listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'GSSAPI'
+    - not omit_jaas_configs | default(false) | bool
 
-- name: Add Sasl OAUTHBEARER Variables
+- name: Add Sasl OAUTHBEARER Properties
   set_fact:
     client_properties: "{{ client_properties | combine(
       {
-        config_prefix + 'sasl.mechanism': 'OAUTHBEARER',
-        config_prefix + 'sasl.login.callback.handler.class': 'io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler',
+        config_prefix + 'sasl.login.callback.handler.class': 'io.confluent.kafka.clients.plugins.auth.token.TokenUserLoginCallbackHandler'
+      }
+    ) }}"
+  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'OAUTHBEARER'
+
+- name: Add Sasl OAUTHBEARER Jaas Property
+  set_fact:
+    client_properties: "{{ client_properties | combine(
+      {
         config_prefix + 'sasl.jaas.config': 'org.apache.kafka.common.security.oauthbearer.OAuthBearerLoginModule required
            username=\"' + oauth_username + '\" password=\"' + oauth_password + '\"
            metadataServerUrls=\"' + mds_http_protocol + '://' + groups['kafka_broker'] | join(':' + mds_port|string + ',' + mds_http_protocol + '://') + ':' + mds_port|string + '\";'
       }
     ) }}"
-  when: listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'OAUTHBEARER'
+  when:
+    - listener['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol == 'OAUTHBEARER'
+    - not omit_jaas_configs | default(false) | bool

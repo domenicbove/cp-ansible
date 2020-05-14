@@ -218,7 +218,7 @@ schema_registry_jolokia_port: 7772
 schema_registry_jolokia_ssl_enabled: "{{ schema_registry_ssl_enabled }}"
 
 schema_registry_default_properties:
-  debug: false
+  debug: 'false'
   schema.registry.group.id: schema-registry
   kafkastore.topic: _schemas
   listeners: "{{schema_registry_http_protocol}}://0.0.0.0:{{schema_registry_listener_port}}"
@@ -257,6 +257,9 @@ kafka_rest_jolokia_enabled: "{{jolokia_enabled}}"
 kafka_rest_jolokia_port: 7775
 kafka_rest_jolokia_ssl_enabled: "{{ kafka_rest_ssl_enabled }}"
 
+
+
+
 # Kafka Connect Variables
 kafka_connect_user: "{{kafka_connect_default_user}}"
 kafka_connect_group: "{{kafka_connect_default_group}}"
@@ -279,6 +282,46 @@ kafka_connect:
 kafka_connect_jolokia_enabled: "{{jolokia_enabled}}"
 kafka_connect_jolokia_port: 7773
 kafka_connect_jolokia_ssl_enabled: "{{ kafka_connect_ssl_enabled }}"
+
+kafka_connect_group_id: connect-cluster
+kafka_connect_default_internal_replication_factor: "{{ [ groups['kafka_broker'] | length, 3 ] | min }}"
+
+kafka_connect_custom_properties: {}
+
+kafka_connect_default_properties:
+  rest.port: "{{kafka_connect_rest_port}}"
+  consumer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor
+  producer.interceptor.classes: io.confluent.monitoring.clients.interceptor.MonitoringProducerInterceptor
+  config.storage.replication.factor: "{{ kafka_connect_default_internal_replication_factor }}"
+  config.storage.topic: "{{kafka_connect_group_id}}-configs"
+  group.id: "{{kafka_connect_group_id}}"
+  internal.key.converter: org.apache.kafka.connect.json.JsonConverter
+  internal.key.converter.schemas.enable: "false"
+  internal.value.converter: org.apache.kafka.connect.json.JsonConverter
+  internal.value.converter.schemas.enable: "false"
+  offset.flush.interval.ms: 10000
+  offset.storage.replication.factor: "{{ kafka_connect_default_internal_replication_factor }}"
+  offset.storage.topic: "{{kafka_connect_group_id}}-offsets"
+  status.storage.replication.factor: "{{ kafka_connect_default_internal_replication_factor }}"
+  status.storage.topic: "{{kafka_connect_group_id}}-status"
+  key.converter: io.confluent.connect.avro.AvroConverter
+  value.converter: io.confluent.connect.avro.AvroConverter
+  plugin.path: "{{(kafka_connect_plugins_path + [kafka_connect_confluent_hub_plugins_dest, kafka_connect_plugins_dest]) | unique | join(',')}}"
+  connector.client.config.override.policy: All
+  listeners: "{{kafka_connect_http_protocol}}://0.0.0.0:{{kafka_connect_rest_port}}"
+  rest.advertised.listener: "{{kafka_connect_http_protocol}}"
+  rest.advertised.host.name: "{{inventory_hostname}}"
+  rest.advertised.port: "{{kafka_connect_rest_port}}"
+  bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']}}{% endfor %}"
+  producer.bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']}}{% endfor %}"
+  consumer.bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']}}{% endfor %}"
+  producer.confluent.monitoring.interceptor.bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']}}{% endfor %}"
+  consumer.confluent.monitoring.interceptor.bootstrap.servers: "{% for host in groups['kafka_broker'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']}}{% endfor %}"
+
+
+
+kafka_connect_properties: "{{ kafka_connect_default_properties | combine(kafka_connect_custom_properties) }}"
+
 
 # KSQL Variables
 ksql_user: "{{ksql_default_user}}"

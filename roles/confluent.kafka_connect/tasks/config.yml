@@ -1,0 +1,274 @@
+---
+- name: Add SSL Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+          'listeners.' + kafka_connect_http_protocol|lower + '.ssl.keystore.location': kafka_connect_keystore_path,
+          'listeners.' + kafka_connect_http_protocol|lower + '.ssl.keystore.password': kafka_connect_keystore_storepass,
+          'listeners.' + kafka_connect_http_protocol|lower + '.ssl.key.password': kafka_connect_keystore_keypass
+      }
+    ) }}"
+  when: kafka_connect_ssl_enabled|bool
+
+# TODO this is not true mtls
+- name: Add Truststore Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+        'listeners.' + kafka_connect_http_protocol|lower + '.ssl.client.auth: 'false',
+        'listeners.' + kafka_connect_http_protocol|lower + '.ssl.truststore.location': kafka_connect_truststore_path,
+        'listeners.' + kafka_connect_http_protocol|lower + '.ssl.truststore.password': kafka_connect_truststore_storepass
+      }
+    ) }}"
+  when: kafka_connect_ssl_mutual_auth_enabled|bool
+
+# TODO look into this
+# - name: Add MTLS Property
+#   set_fact:
+#     schema_registry_properties: "{{ schema_registry_properties | combine(
+#       {
+#         'ssl.client.auth': 'true'
+#       }
+#     ) }}"
+#   when: schema_registry_ssl_mutual_auth_enabled|bool
+
+- name: Set facts to be used by the client config tasks
+  set_fact:
+    listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    truststore_path: "{{kafka_connect_truststore_path}}"
+    truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    keystore_path: "{{kafka_connect_keystore_path}}"
+    keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path | default('')}}"
+    kerberos_principal: "{{kafka_connect_kerberos_principal | default('')}}"
+    oauth_username: "{{kafka_connect_ldap_user}}"
+    oauth_password: "{{kafka_connect_ldap_password}}"
+
+# Kafka Broker Configuration
+- name: Create Kafka Client Property Dict
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: ''
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+
+- name: Add Kafka Client Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+
+- name: Add SR URL
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      {
+        'value.converter.schema.registry.url': schema_registry_http_protocol + '://' + groups['schema_registry'] | join(':' + schema_registry_listener_port|string + ',' + schema_registry_http_protocol + '://') + ':' + schema_registry_listener_port|string,
+        'key.converter.schema.registry.url': schema_registry_http_protocol + '://' + groups['schema_registry'] | join(':' + schema_registry_listener_port|string + ',' + schema_registry_http_protocol + '://') + ':' + schema_registry_listener_port|string
+      }
+    ) }}"
+  when: "'schema_registry' in groups"
+
+- name: Add SR SSL
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+        'value.converter.schema.registry.ssl.truststore.location': kafka_connect_truststore_path,
+        'value.converter.schema.registry.ssl.truststore.password': kafka_connect_truststore_storepass,
+        'value.converter.schema.registry.ssl.keystore.location': kafka_connect_keystore_path,
+        'value.converter.schema.registry.ssl.keystore.password': kafka_connect_keystore_storepass,
+        'value.converter.schema.registry.ssl.key.password': kafka_connect_keystore_keypass,
+        'key.converter.schema.registry.ssl.truststore.location': kafka_connect_truststore_path,
+        'key.converter.schema.registry.ssl.truststore.password': kafka_connect_truststore_storepass,
+        'key.converter.schema.registry.ssl.keystore.location': kafka_connect_keystore_path,
+        'key.converter.schema.registry.ssl.keystore.password': kafka_connect_keystore_storepass,
+        'key.converter.schema.registry.ssl.key.password': kafka_connect_keystore_keypass
+      }
+    ) }}"
+  when: "'schema_registry' in groups and schema_registry_ssl_enabled|bool"
+
+# Producer should not have jaas config, set in worker properties
+- name: Producer Configuration
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'producer.'
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+    omit_jaas_configs: true
+
+- name: Add Producer Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+
+# Consumer should not have jaas config, set in worker properties
+- name: Consumer Configuration
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'consumer.'
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+    omit_jaas_configs: true
+
+- name: Add Consumer Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+
+- name: Producer Monitoring Interceptor Configuration
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'producer.confluent.monitoring.interceptor.'
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+
+- name: Add Producer Monitoring Interceptor Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+
+- name: Consumer Monitoring Interceptor Configuration
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'consumer.confluent.monitoring.interceptor.'
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+
+- name: Add Consumer Monitoring Interceptor Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+
+- name: Add RBAC Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+        'rest.extension.classes': 'io.confluent.connect.security.ConnectSecurityExtension'
+      }
+    ) }}"
+  when:
+    - rbac_enabled|bool
+    - not kafka_connect_secret_registry_enabled|bool
+
+- name: Add Secret Registry Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+        'rest.extension.classes': 'io.confluent.connect.security.ConnectSecurityExtension,io.confluent.connect.secretregistry.ConnectSecretRegistryExtension',
+        'config.providers': 'secret',
+        'config.providers.secret.param.kafkastore.topic': '_confluent-secrets',
+        'config.providers.secret.param.secret.registry.group.id': 'secret-registry',
+        'config.providers.secret.class': 'io.confluent.connect.secretregistry.rbac.config.provider.InternalSecretConfigProvider',
+        'config.providers.secret.param.master.encryption.key': kafka_connect_secret_registry_key,
+        'config.providers.secret.param.kafkastore.bootstrap.servers': groups['kafka_broker'] | join(':' + kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']|string + ',') + ':' + kafka_broker_listeners[kafka_connect_kafka_listener_name]['port']|string
+      }
+    ) }}"
+  when:
+    - rbac_enabled|bool
+    - kafka_connect_secret_registry_enabled|bool
+
+- name: Secret Registry Configuration
+  include_tasks: roles/confluent.kafka_broker/tasks/client_config.yml
+  vars:
+    config_prefix: 'config.providers.secret.param.kafkastore.'
+    # listener: "{{kafka_broker_listeners[kafka_connect_kafka_listener_name]}}"
+    # truststore_path: "{{kafka_connect_truststore_path}}"
+    # truststore_storepass: "{{kafka_connect_truststore_storepass}}"
+    # keystore_path: "{{kafka_connect_keystore_path}}"
+    # keystore_storepass: "{{kafka_connect_keystore_storepass}}"
+    # keystore_keypass: "{{kafka_connect_keystore_keypass}}"
+    # sasl_plain_username: "{{sasl_plain_users.kafka_connect.principal}}"
+    # sasl_plain_password: "{{sasl_plain_users.kafka_connect.password}}"
+    # sasl_scram_username: "{{sasl_scram_users.kafka_connect.principal}}"
+    # sasl_scram_password: "{{sasl_scram_users.kafka_connect.password}}"
+    # kerberos_keytab_path: "{{kafka_connect_kerberos_keytab_path}}"
+    # kerberos_principal: "{{kafka_connect_kerberos_principal}}"
+    # oauth_username: "{{kafka_connect_ldap_user}}"
+    # oauth_password: "{{kafka_connect_ldap_password}}"
+  when:
+    - rbac_enabled|bool
+    - kafka_connect_secret_registry_enabled|bool
+
+- name: Add Secret Registry Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(client_properties) }}"
+  when:
+    - rbac_enabled|bool
+    - kafka_connect_secret_registry_enabled|bool
+
+- name: Add RBAC Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(
+      {
+        'rest.servlet.initializor.classes': 'io.confluent.common.security.jetty.initializer.InstallBearerOrBasicSecurityHandler',
+        'public.key.path': rbac_enabled_public_pem_path,
+        'confluent.metadata.basic.auth.user.info': kafka_connect_ldap_user + ':' + kafka_connect_ldap_password,
+        'confluent.metadata.http.auth.credentials.provider': 'BASIC',
+        'confluent.metadata.bootstrap.server.urls': mds_http_protocol + '://' + groups['kafka_broker'] | join(':' + mds_port|string + ',' + mds_http_protocol + '://') + ':' + mds_port|string,
+      }
+    ) }}"
+  when: rbac_enabled|bool
+
+- name: Add Custom Properties
+  set_fact:
+    kafka_connect_properties: "{{ kafka_connect_properties | combine(kafka_connect_custom_properties) }}"
+
+- debug: var=kafka_connect_properties

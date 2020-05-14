@@ -1,26 +1,75 @@
 ---
-- name: Add Kerberos Properties
-  set_fact:
-    zookeeper_properties: "{{ zookeeper_properties | combine(zookeeper_sasl_kerberos_properties, recursive=True) }}"
-  when: zookeeper_sasl_protocol == 'kerberos'
-
 - name: Add Zookeeper Hosts
   set_fact:
-    zookeeper_properties: "{{ zookeeper_properties | combine( {
-      'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
-      item + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
-    } ) }}"
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+        'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
+          item + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
+      }
+    ) }}"
   with_items: "{{ groups['zookeeper'] }}"
   when: item != inventory_hostname
 
 - name: Add Zookeeper Hosts
   set_fact:
-    zookeeper_properties: "{{ zookeeper_properties | combine( {
-      'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
-      zookeeper_current_node_hostname + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
-    } ) }}"
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+        'server.' + hostvars[item]['zookeeper_id'] | default(groups.zookeeper.index(item) + 1) | string :
+          zookeeper_current_node_hostname + ':' + zookeeper_peer_port|string + ':' + zookeeper_leader_port|string
+      }
+    ) }}"
   with_items: "{{ groups['zookeeper'] }}"
   when: item == inventory_hostname
+
+- name: Add SSL Properties
+  set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+          'secureClientPort': zookeeper_client_port,
+          'serverCnxnFactory': 'org.apache.zookeeper.server.NettyServerCnxnFactory',
+          'authProvider.x509': 'org.apache.zookeeper.server.auth.X509AuthenticationProvider',
+          'ssl.keyStore.location': zookeeper_keystore_path,
+          'ssl.keyStore.password': zookeeper_keystore_storepass,
+          'ssl.trustStore.location': zookeeper_truststore_path,
+          'ssl.trustStore.password': zookeeper_truststore_storepass,
+          'sslQuorum': 'true',
+          'ssl.quorum.keyStore.location': zookeeper_keystore_path,
+          'ssl.quorum.keyStore.password': zookeeper_keystore_storepass,
+          'ssl.quorum.trustStore.location': zookeeper_truststore_path,
+          'ssl.quorum.trustStore.password': zookeeper_truststore_storepass,
+          'ssl.clientAuth': 'none'
+      }
+    ) }}"
+  when: zookeeper_ssl_enabled|bool
+
+- name: Add MTLS Property
+  set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+        'ssl.clientAuth': 'need'
+      }
+    ) }}"
+  when: zookeeper_ssl_mutual_auth_enabled|bool
+
+- name: Add Kerberos Properities
+  set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+          'authProvider.sasl': 'org.apache.zookeeper.server.auth.SASLAuthenticationProvider',
+          'kerberos.removeHostFromPrincipal': 'true',
+          'kerberos.removeRealmFromPrincipal': 'true'
+      }
+    ) }}"
+  when: zookeeper_sasl_protocol == 'kerberos'
+
+- name: Add Digest-MD5 Properities
+  set_fact:
+    zookeeper_properties: "{{ zookeeper_properties | combine(
+      {
+          'authProvider.sasl': 'org.apache.zookeeper.server.auth.SASLAuthenticationProvider'
+      }
+    ) }}"
+  when: zookeeper_sasl_protocol == 'digest'
 
 - name: Add Custom Properties
   set_fact:

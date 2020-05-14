@@ -103,10 +103,7 @@ zookeeper_default_properties:
 
 zookeeper_properties: "{{ zookeeper_default_properties | combine(zookeeper_custom_properties, recursive=True) }}"
 
-zookeeper_sasl_kerberos_properties:
-  authProvider.sasl: org.apache.zookeeper.server.auth.SASLAuthenticationProvider
-  kerberos.removeHostFromPrincipal: 'true'
-  kerberos.removeRealmFromPrincipal: 'true'
+
 
 # Kafka Broker Variables
 kafka_broker_default_listeners:
@@ -184,7 +181,7 @@ kafka_broker_default_properties:
   confluent.support.metrics.enable: "{{confluent.support.metrics_enabled|bool|lower}}"
   confluent.support.customer.id: "{{confluent.support.customer_id}}"
   # TODO see if join filter would work here
-  zookeeper.connect: "{% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper_properties.clientPort}}{% endfor %}"
+  zookeeper.connect: "{% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper_client_port}}{% endfor %}"
   log.dirs: /var/lib/kafka/data
   # broker.id: "{{ broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1)}}"
   listener.security.protocol.map: "{% for listener in kafka_broker_listeners|dict2items %}{% if loop.index > 1%},{% endif %}{{ listener['value']['name'] }}:{{ listener['value'] | kafka_protocol_defaults(ssl_enabled, sasl_protocol)}}{% endfor %}"

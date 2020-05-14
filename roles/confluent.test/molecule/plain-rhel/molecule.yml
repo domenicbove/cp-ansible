@@ -38,8 +38,32 @@ platforms:
     privileged: true
     networks:
       - name: confluent
+  - name: kafka-broker2
+    hostname: kafka-broker2.confluent
+    groups:
+      - kafka_broker
+    image: geerlingguy/docker-centos7-ansible
+    dockerfile: ../Dockerfile.j2
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    networks:
+      - name: confluent
   - name: schema-registry1
     hostname: schema-registry1.confluent
+    groups:
+      - schema_registry
+    image: geerlingguy/docker-centos7-ansible
+    dockerfile: ../Dockerfile.j2
+    command: ""
+    volumes:
+      - /sys/fs/cgroup:/sys/fs/cgroup:ro
+    privileged: true
+    networks:
+      - name: confluent
+  - name: schema-registry2
+    hostname: schema-registry2.confluent
     groups:
       - schema_registry
     image: geerlingguy/docker-centos7-ansible
@@ -113,7 +137,7 @@ provisioner:
 
         scenario_name: plain-rhel
 
-        sasl_protocol: scram
+        sasl_protocol: plain
         # kerberos_kafka_broker_primary: kafka
         # kafka_broker_kerberos_principal: "{{kerberos_kafka_broker_primary}}/{{inventory_hostname}}.confluent@{{kerberos.realm | upper}}"
         # kafka_broker_kerberos_keytab_path: "roles/confluent.test/molecule/{{scenario_name}}/keytabs/kafka_broker-{{inventory_hostname}}.keytab"
@@ -125,11 +149,14 @@ provisioner:
         #   admin_hostname: kerberos1
 
         # schema_registry_ssl_enabled: true
-        # kafka_broker_schema_validation_enabled: true
+        kafka_broker_schema_validation_enabled: true
 
         # zookeeper_sasl_protocol: kerberos
-
         ssl_enabled: true
+        ssl_mutual_auth_enabled: true
+
+        zookeeper_ssl_enabled: true
+        zookeeper_ssl_mutual_auth_enabled: true
 
         # fips_enabled: true
         #

@@ -4,13 +4,6 @@
 {% endfor %}
 
 
-{% if kafka_broker_sasl_enabled_mechanisms|length > 0 %}
-sasl.enabled.mechanisms={% for mechanism in kafka_broker_sasl_enabled_mechanisms %}{% if loop.index > 1%},{% endif %}{{ mechanism|upper }}{% endfor %}
-
-{% endif %}
-{% if 'GSSAPI' in kafka_broker_sasl_enabled_mechanisms %}
-sasl.kerberos.service.name={{kerberos_kafka_broker_primary}}
-{% endif %}
 
 {% for listener in kafka_broker_listeners|dict2items %}
 {% include 'listener.j2' %}

@@ -110,9 +110,10 @@ provisioner:
   inventory:
     group_vars:
       all:
-        sasl_protocol: plain
+        sasl_protocol: kerberos
+        kerberos_kafka_broker_primary: kafka
 
-        zookeeper_sasl_protocol: kerberos
+        # zookeeper_sasl_protocol: kerberos
 
         fips_enabled: true
 

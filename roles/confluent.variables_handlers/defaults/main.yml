@@ -171,6 +171,7 @@ kafka_broker_default_properties:
   confluent.metadata.topic.replication.factor: "{{kafka_broker_default_interal_replication_factor}}"
   confluent.support.metrics.enable: "{{confluent.support.metrics_enabled|bool|lower}}"
   confluent.support.customer.id: "{{confluent.support.customer_id}}"
+  # TODO see if join filter would work here
   zookeeper.connect: "{% for host in groups['zookeeper'] %}{% if loop.index > 1%},{% endif %}{{ host }}:{{zookeeper_properties.clientPort}}{% endfor %}"
   log.dirs: /var/lib/kafka/data
   # broker.id: "{{ broker_id | default(groups.kafka_broker.index(inventory_hostname) + 1)}}"

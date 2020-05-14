@@ -31,6 +31,25 @@
     ) }}"
   when: kafka_broker_listeners[kafka_broker_inter_broker_listener_name]['sasl_protocol'] | default(sasl_protocol) | normalize_sasl_protocol != 'none'
 
+- name: Add sasl.enabled.mechanisms Property
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      {
+        'sasl.enabled.mechanisms': kafka_broker_sasl_enabled_mechanisms | join(',')
+      }
+    ) }}"
+  when: kafka_broker_sasl_enabled_mechanisms|length > 0
+
+- name: Add sasl.kerberos.service.name Property
+  set_fact:
+    kafka_broker_properties: "{{ kafka_broker_properties | combine(
+      {
+        'sasl.kerberos.service.name': kerberos_kafka_broker_primary
+      }
+    ) }}"
+  when: "'GSSAPI' in kafka_broker_sasl_enabled_mechanisms"
+
+
 - debug: var=kafka_broker_properties
 
 # - name: Add Kerberos Properties

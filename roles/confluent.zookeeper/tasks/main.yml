@@ -1,14 +1,14 @@
 ---
-- include_role:
-    name: confluent.common
-  when: not common_role_completed|bool
+# - include_role:
+#     name: confluent.common
+#   when: not common_role_completed|bool
 
-- name: Install the Zookeeper Packages
-  yum:
-    name: "{{item}}{{confluent_package_redhat_suffix}}"
-    state: latest
-  loop: "{{zookeeper_packages}}"
-  when: ansible_os_family == "RedHat"
+# - name: Install the Zookeeper Packages
+#   yum:
+#     name: "{{item}}{{confluent_package_redhat_suffix}}"
+#     state: latest
+#   loop: "{{zookeeper_packages}}"
+#   when: ansible_os_family == "RedHat"
 
 - name: Install the Zookeeper Packages
   apt:
@@ -50,7 +50,7 @@
     kerberos_group: "{{zookeeper_group}}"
     kerberos_user: "{{zookeeper_user}}"
     kerberos_keytab_path: "{{zookeeper_kerberos_keytab_path}}"
-    kerberos_handler: "restart zookeeper"
+    kerberos_handler: "Restart Zookeeper"
   when: zookeeper_sasl_protocol == 'kerberos'
 
 - name: Set Zookeeper dataDir ownership
@@ -84,8 +84,7 @@
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
   register: zookeeper_config
-  notify:
-    - restart zookeeper
+  notify: Restart Zookeeper
 
 - name: Create Log Directory
   file:
@@ -103,7 +102,7 @@
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
   notify:
-    - restart zookeeper
+    - Restart Zookeeper
 
 - name: Create Zookeeper Jaas config
   template:
@@ -113,8 +112,7 @@
     owner: "{{zookeeper_user}}"
     group: "{{zookeeper_group}}"
   when: zookeeper_sasl_protocol in ['kerberos', 'digest']
-  notify:
-    - restart zookeeper
+  notify: Restart Zookeeper
 
 - name: Deploy JMX Exporter Config File
   copy:
@@ -142,23 +140,31 @@
     group: "{{zookeeper_group}}"
   notify:
     - reload systemd
-    - restart zookeeper
+    - Restart Zookeeper
 
 - name: Certs were Updated - Trigger Restart
   command: /bin/true
-  notify: restart zookeeper
+  notify: Restart Zookeeper
   when: certs_updated|bool
+
+# - name: populate service facts
+#   service_facts:
+#
+# - debug:
+#     var: ansible_facts.services['confluent-zookeeper.service']
+#
+# - fail:
 
 - meta: flush_handlers
 
-- name: Start Zookeeper Service
-  systemd:
-    name: "{{zookeeper_service_name}}"
-    enabled: true
-    state: started
-
-- name: Zookeeper Health Check
-  include_tasks: health_check.yml
-  when:
-    - health_checks_enabled|bool
-    - not ansible_check_mode
+# - name: Start Zookeeper Service
+#   systemd:
+#     name: "{{zookeeper_service_name}}"
+#     enabled: true
+#     state: started
+#
+# - name: Zookeeper Health Check
+#   include_tasks: health_check.yml
+#   when:
+#     - health_checks_enabled|bool
+#     - not ansible_check_mode

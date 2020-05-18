@@ -1,5 +1,17 @@
 ---
-- name: restart zookeeper
-  systemd:
-    name: "{{zookeeper_service_name}}"
-    state: restarted
+- name: Restart Zookeeper
+  include: restart_zookeeper.yml
+
+# - name: restart zookeeper
+#   systemd:
+#     name: "{{zookeeper_service_name}}"
+#     state: restarted
+
+
+
+# Loops over all kafka hosts, but only runs when current host, delegated to current host
+# - name: Restart Zookeeper
+#   include: restart_zookeeper.yml
+  # delegate_to: "{{ item }}"
+  # loop: "{{ groups['zookeeper'] }}"
+  # when: "hostvars[item].inventory_hostname == inventory_hostname"

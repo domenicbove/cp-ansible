@@ -28,6 +28,11 @@
     - not custom_apt_repo|bool
     - install_java|bool
 
+- name: Make Sure man pages Directory Exists
+  file:
+    path: /usr/share/man/man1
+    state: directory
+
 - name: Install Java
   apt:
     name: "{{ubuntu_java_package_name}}"

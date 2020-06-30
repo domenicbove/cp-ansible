@@ -31,6 +31,8 @@ fips_jar_path: /usr/share/java/kafka/bc-fips-1.0.1.jar
 fips_provider_class: org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider
 pkcs12_enabled: "{{ true if fips_enabled|bool else false }}"
 
+acls_enabled: false
+
 custom_log4j: true
 custom_yum_repofile: false
 custom_apt_repo: false
@@ -38,8 +40,14 @@ kerberos_configure: true
 
 open_file_limit: 500000
 
-rbac_enabled: false
 confluent_server_enabled: true
+
+rbac_enabled: false
+rbac_mds_private_key_filename: tokenKeypair.pem
+rbac_mds_public_key_filename: public.pem
+
+install_netcat: true
+health_checks_enabled: true
 
 # Other options: kerberos, plain, scram
 sasl_protocol: none
@@ -65,6 +73,14 @@ kafka_broker_default_listeners:
     ssl_mutual_auth_enabled: "{{ ssl_mutual_auth_enabled }}"
     sasl_protocol: "{{ sasl_protocol }}"
 
+kafka_broker_token_listeners:
+  token:
+    name: TOKEN
+    port: 9094
+    ssl_enabled: true
+    ssl_mutual_auth_enabled: true
+    sasl_protocol: oauth
+
 kafka_broker_custom_listeners:
   internal:
     name: INTERNAL
@@ -74,7 +90,12 @@ kafka_broker_custom_listeners:
     sasl_protocol: "{{ sasl_protocol }}"
 
 kafka_broker_configure_additional_brokers: true
-kafka_broker_listeners: "{{ kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if kafka_broker_configure_additional_brokers|bool else  kafka_broker_default_listeners}}"
+kafka_broker_listeners: >-
+  {{ kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) | combine(kafka_broker_custom_listeners, recursive=True) if rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_token_listeners, recursive=True) if rbac_enabled|bool and not kafka_broker_configure_additional_brokers|bool
+  else kafka_broker_default_listeners | combine(kafka_broker_custom_listeners, recursive=True) if not rbac_enabled|bool and kafka_broker_configure_additional_brokers|bool
+  else  kafka_broker_default_listeners }}
+
 kafka_broker_inter_broker_listener_name: "{{ 'internal' if kafka_broker_configure_additional_brokers|bool else 'external' }}"
 
 # Uses custom filter to create a list of all sasl_protocols, removes ['none'], and reduces to unique items
@@ -164,6 +185,9 @@ zookeeper:
   jaas_file: /etc/kafka/zookeeper_jaas.conf
 
 sasl_scram_users:
+  kafka_broker:
+    principal: kafka_broker
+    password: kafka_broker-secret
   admin:
     principal: admin
     password: admin-secret
@@ -187,6 +211,9 @@ sasl_scram_users:
     password: schema_registry-secret
 
 sasl_plain_users:
+  kafka_broker:
+    principal: kafka_broker
+    password: kafka_broker-secret
   admin:
     principal: admin
     password: admin-secret

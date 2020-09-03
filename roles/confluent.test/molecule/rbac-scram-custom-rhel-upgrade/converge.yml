@@ -1,0 +1,14 @@
+---
+- name: Change cp-ansible branches
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Switch to 6.0.0 Branch
+      shell: git checkout cp-6-dev
+      args:
+        chdir: "{{playbook_dir}}"
+      delegate_to: 127.0.0.1
+      run_once: true
+
+- name: Upgrade Zookeeper
+  import_playbook: ../../../../upgrade_zookeeper.yml

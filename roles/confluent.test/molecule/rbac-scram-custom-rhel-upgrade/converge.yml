@@ -11,4 +11,4 @@
       run_once: true
 
 - name: Upgrade Zookeeper
-  import_playbook: ../../../../upgrade_zookeeper.yml
+  include: ../../../../upgrade_zookeeper.yml

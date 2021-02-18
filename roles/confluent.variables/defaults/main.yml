@@ -304,22 +304,22 @@ kafka_broker_default_listeners: "{
   'internal': {
     'name': 'INTERNAL',
     'port': 9092,
-    'ssl_enabled': '{{ssl_enabled|string|lower}}',
-    'ssl_mutual_auth_enabled': '{{ssl_mutual_auth_enabled|string|lower}}',
-    'sasl_protocol': '{% if rbac_enabled|bool %}'OAUTH'{% else %}{{sasl_protocol}}{% endif %}'
+    'ssl_enabled': {{ssl_enabled|string|lower}},
+    'ssl_mutual_auth_enabled': {{ssl_mutual_auth_enabled|string|lower}},
+    'sasl_protocol': '{% if rbac_enabled|bool %}OAUTH{% else %}{{sasl_protocol}}{% endif %}'
   }{% if kafka_broker_configure_additional_brokers|bool %},
   'broker': {
     'name': 'BROKER',
     'port': 9091,
-    'ssl_enabled': '{{ssl_enabled|string|lower}}',
-    'ssl_mutual_auth_enabled': '{{ssl_mutual_auth_enabled|string|lower}}',
+    'ssl_enabled': {{ssl_enabled|string|lower}},
+    'ssl_mutual_auth_enabled': {{ssl_mutual_auth_enabled|string|lower}},
     'sasl_protocol': '{{sasl_protocol}}'
   }{% if kafka_broker_configure_control_plane_listener|bool %},
   'controller': {
     'name': 'CONTROLLER',
     'port': 9089,
-    'ssl_enabled': '{{ssl_enabled|string|lower}}',
-    'ssl_mutual_auth_enabled': '{{ssl_mutual_auth_enabled|string|lower}}',
+    'ssl_enabled': {{ssl_enabled|string|lower}},
+    'ssl_mutual_auth_enabled': {{ssl_mutual_auth_enabled|string|lower}},
     'sasl_protocol': '{{sasl_protocol}}'
   }{% endif %}{% endif %}
 }"

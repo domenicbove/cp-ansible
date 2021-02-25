@@ -228,11 +228,27 @@ Default:  "{{rbac_enabled or secrets_protection_enabled}}"
 
 ***
 
+### confluent_cli_base_path
+
+The path the Confluent CLI archive is expanded into.
+
+Default:  /opt/confluent-cli
+
+***
+
 ### confluent_cli_path
 
-Full path on hosts to install the Confluent CLI
+Full path on hosts for Confluent CLI symlink to executable
 
-Default:  /usr/local/bin/confluent
+Default:  "/usr/local/bin/confluent"
+
+***
+
+### confluent_cli_version
+
+Confluent CLI version to download (e.g. "1.9.0"). By default is the latest version
+
+Default:  latest
 
 ***
 
@@ -1678,9 +1694,17 @@ Default:  "{{rbac_component_additional_system_admins}}"
 
 ### secrets_protection_enabled
 
-Boolean to enable secrets protection on all components except Rest Proxy
+Boolean to enable secrets protection on all components except Zookeeper
 
 Default:  false
+
+***
+
+### regenerate_masterkey
+
+Boolean to Recreate Secrets File and Masterkey. Only set to false AFTER first cp-ansible run.
+
+Default:  true
 
 ***
 
